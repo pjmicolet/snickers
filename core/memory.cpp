@@ -16,7 +16,6 @@ RAM::RAM( size_t ramSize, std::vector<int>& tracedLines ) {
     }
 }
 
-auto RAM::store( int index, uint16_t data ) -> void {
-    uint16_t before = 0;
+auto RAM::store( int index, std::byte data ) -> void {
     ram_[ index ] = data;
 }

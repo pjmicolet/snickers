@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <vector>
 #include <iostream>
+#include <cstddef>
 
 class RAM {
 public:
@@ -9,32 +10,32 @@ public:
     RAM( size_t ramSize, std::vector<int>& tracedLines );
 
     struct RamLine {
-        RamLine(int index) : traced_(false), data_(0), index_( index ) {};
-        RamLine(int index, bool traced) : traced_(traced), data_(0), index_( index ) {};
+        RamLine(int index) : traced_(false), data_( std::byte{0} ), index_( index ) {};
+        RamLine(int index, bool traced) : traced_(traced), data_( std::byte{0} ), index_( index ) {};
 
         friend auto operator<< (std::ostream& os, const RamLine& data ) -> std::ostream& {
             return os << "RAM[" << std::hex << data.index_ << "]";
         }
 
-        auto operator= ( uint16_t data ) -> RamLine& {
+        auto operator= ( std::byte data ) -> RamLine& {
             if( traced_ )
-                std::cout << this << std::hex << " = 0x"<< data_ << " -> 0x" << data << "\n";
+                std::cout << this << std::hex << " = 0x"<< std::to_integer<uint16_t>( data_ ) << " -> 0x" << std::to_integer<uint16_t>( data ) << "\n";
             data_ = data;
             return *this;
         }
 
         auto operator= ( RamLine& line ) -> RamLine& {
             if( traced_ )
-                std::cout << this << std::hex << " = 0x"<< data_ << " -> 0x" << line.data_ << "\n";
+                std::cout << this << std::hex << " = 0x"<< std::to_integer<uint16_t>( data_ ) << " -> 0x" << std::to_integer<uint16_t>( line.data_ ) << "\n";
             data_ = line.data_;
             return *this;
         }
 
-        auto operator== ( uint16_t data ) -> bool {
+        auto operator== ( std::byte data ) -> bool {
             return data_ == data;
         }
 
-        auto operator!= ( uint16_t data ) -> bool {
+        auto operator!= ( std::byte data ) -> bool {
             return data_ != data;
         }
     
@@ -46,7 +47,7 @@ public:
             return data_ != line.data_;
         }
 
-        uint16_t data_;
+        std::byte data_;
 
         private:
             bool traced_;
@@ -57,7 +58,7 @@ public:
         return ram_[ index ];
     }
 
-    auto store( int index, uint16_t data ) -> void;
+    auto store( int index, std::byte data ) -> void;
 
 private:
     std::vector< RamLine > ram_;
