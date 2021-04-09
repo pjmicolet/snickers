@@ -11,8 +11,20 @@ bool test_basic_load() {
     return true;
 }
 
+bool test_wrong_path() {
+    bool pass = false;
+    try {
+        Rom rom( "nowhereland" );
+    } catch ( RomException& e ) {
+        pass = true;
+    }
+    
+    return pass;
+}
+
 bool test_rom() {
     bool passed = true;
     RUN_TEST( test_basic_load() );
+    RUN_TEST( test_wrong_path() );
     return passed;
 }
