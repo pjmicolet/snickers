@@ -5,6 +5,7 @@
 
 class RAM {
 public:
+    // Don't want a default constructor because it means very little
     RAM() = delete;
     RAM( size_t ramSize );
     RAM( size_t ramSize, std::vector<int>& tracedLines );
@@ -47,7 +48,8 @@ public:
             return data_ != line.data_;
         }
 
-        std::byte data_;
+        protected:
+            std::byte data_;
 
         private:
             bool traced_;
