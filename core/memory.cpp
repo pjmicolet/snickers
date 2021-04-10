@@ -3,14 +3,17 @@
 RAM::RAM( size_t ramSize, int banks ) noexcept : banks_(banks) {
     ram_.reserve( banks );
     int ramLines = ramSize/banks;
+    int8_t bank = 0;
     this->lines_ = ramLines;
+
     for( int i = 0; i < banks; i++ )
         ram_.emplace_back();
-    for( auto& ramBank : ram_ )
-    {
+
+    for( auto& ramBank : ram_ ) {
         ramBank.reserve( ramLines );
         for( int i = 0; i < ramLines; i++ )
-            ramBank.emplace_back(i);    
+            ramBank.emplace_back(i, bank);    
+        bank++;
     }
 }
 
@@ -20,6 +23,7 @@ RAM::RAM( size_t ramSize, std::vector<int>& tracedLines, int banks ) noexcept : 
     int tracing = 0;
     int lines = 0;
     this->lines_ = ramLines;
+    int8_t bank = 0;
 
     for( int i = 0; i < banks; i++ )
         ram_.emplace_back();
@@ -29,8 +33,9 @@ RAM::RAM( size_t ramSize, std::vector<int>& tracedLines, int banks ) noexcept : 
         for( int i = 0; i < ramLines; i++,lines++ ) {
             bool trace = (int)lines == tracedLines[ tracing ];
             if( trace ) tracing++;
-            ramBank.emplace_back(i,trace);    
+            ramBank.emplace_back(i,bank,trace);    
         }
+        bank++;
     }
 }
 

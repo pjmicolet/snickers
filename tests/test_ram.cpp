@@ -35,8 +35,11 @@ bool test_banks() {
 
     ram[ 0x000019 ] = std::byte{ 10 }; // Bank 0 line 25
     ram[ 0x010032 ] = std::byte{ 10 }; // Bank 1 line 50
+    ram[ 0x010019 ] = std::byte{ 11 }; // Bank 1 line 50
 
     passed &= ram[ 0x000019 ] == ram[ 0x010032 ];
+    passed &= ram[ 0x000019 ] != ram[ 0x010019 ]; // Just make sure banks are being read correctly
+    passed &= ram[ 0x010000 ].bank_ == 1; // better way to do it
     return passed;
 }
 
