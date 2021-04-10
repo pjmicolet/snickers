@@ -2,17 +2,30 @@
 #include <vector>
 #include <iostream>
 #include <cstddef>
+#include <utility>
+
+class RamException : public std::exception {
+public:
+    RamException( std::string message ) : exception_msg_( message ) {};
+    virtual const char* what() const throw() {
+        return exception_msg_.c_str();
+    }    
+private:
+    std::string exception_msg_;
+};
 
 class RAM {
 public:
     // Don't want a default constructor because it means very little
     RAM() = delete;
-    RAM( size_t ramSize );
-    RAM( size_t ramSize, std::vector<int>& tracedLines );
+    RAM( size_t ramSize, int banks = 1 ) noexcept;
+    RAM( size_t ramSize, std::vector<int>& tracedLines, int banks = 1 ) noexcept;
 
     struct RamLine {
         RamLine(int index) : traced_(false), data_( std::byte{0} ), index_( index ) {};
+        RamLine(int index, int8_t bank) : traced_(false), data_( std::byte{0} ), index_( index ), bank_( bank ) {};
         RamLine(int index, bool traced) : traced_(traced), data_( std::byte{0} ), index_( index ) {};
+        RamLine(int index, int8_t bank, bool traced) : traced_(traced), data_( std::byte{0} ), index_( index ), bank_( bank ) {};
 
         friend auto operator<< (std::ostream& os, const RamLine& data ) -> std::ostream& {
             return os << "RAM[" << std::hex << data.index_ << "]";
@@ -32,22 +45,15 @@ public:
             return *this;
         }
 
-        auto operator== ( std::byte data ) -> bool {
+        auto operator== ( std::byte data ) const -> bool {
             return data_ == data;
         }
 
-        auto operator!= ( std::byte data ) -> bool {
-            return data_ != data;
-        }
-    
-        auto operator== ( const RamLine& line ) -> bool {
+        auto operator== ( const RamLine& line ) const -> bool {
             return data_ == line.data_;
         }
 
-        auto operator!= ( const RamLine& line ) -> bool {
-            return data_ != line.data_;
-        }
-
+        int8_t bank_;
         protected:
             std::byte data_;
 
@@ -56,13 +62,31 @@ public:
             int index_;
     };
 
+#if DEBUG
     auto operator[]( int index ) -> RamLine& {
-        return ram_[ index ];
+#else
+    auto operator[]( int index ) noexcept -> RamLine& {
+#endif
+        auto bankIndex = calculateBank( index );
+        return ram_[bankIndex.first][ bankIndex.second ];
     }
 
+#if DEBUG
     auto store( int index, std::byte data ) -> void;
+#else
+    auto store( int index, std::byte data ) noexcept -> void;
+#endif
+
 
 private:
-    std::vector< RamLine > ram_;
-        
+    using bankIndexPair = std::pair<int,int>;
+#if DEBUG
+    auto calculateBank( int index ) -> bankIndexPair;
+#else
+    auto calculateBank( int index ) noexcept -> bankIndexPair;
+#endif
+    std::vector< std::vector< RamLine > > ram_;
+    auto validateRAM( bankIndexPair& pair ) -> void;
+    int banks_;
+    int lines_;
 };
