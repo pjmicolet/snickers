@@ -62,6 +62,22 @@ public:
             int index_;
     };
 
+    struct Bank {
+        Bank( size_t numLines, int bankNum ) : bankNum_( bankNum ) { lines_.reserve(numLines); };
+        Bank( size_t numLines, int bankNum, std::vector<int> bankMirrors ) : bankMirrors_( bankMirrors ), bankNum_( bankNum ) { lines_.reserve( numLines ); }; // std::move ?
+        
+        inline void populate( int index, bool traced = false ) {
+           lines_.emplace_back( index, bankNum_, traced );
+        }   
+        auto operator[]( int index ) -> RamLine& {
+            return lines_[index];
+        }
+        private:
+            std::vector< RamLine > lines_;
+            std::vector< int > bankMirrors_;
+            int bankNum_;
+    };
+
 #if DEBUG
     auto operator[]( int index ) -> RamLine& {
 #else
@@ -85,7 +101,7 @@ private:
 #else
     auto calculateBank( int index ) noexcept -> bankIndexPair;
 #endif
-    std::vector< std::vector< RamLine > > ram_;
+    std::vector< Bank > ram_;
     auto validateRAM( bankIndexPair& pair ) -> void;
     int banks_;
     int lines_;
