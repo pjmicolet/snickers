@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstddef>
 #include <utility>
+#include <unordered_map>
 
 class RamException : public std::exception {
 public:
@@ -16,10 +17,12 @@ private:
 
 class RAM {
 public:
+    using Mirrors = std::unordered_map< int, std::vector< int > >;
     // Don't want a default constructor because it means very little
     RAM() = delete;
-    RAM( size_t ramSize, int banks = 1 ) noexcept;
+    RAM( size_t ramSize, int banks = 1, Mirrors mirrors = {} ) noexcept;
     RAM( size_t ramSize, std::vector<int>& tracedLines, int banks = 1 ) noexcept;
+    RAM( size_t ramSize, std::vector<int>& tracedLines, int banks = 1, Mirrors mirrors = {} ) noexcept;
 
     struct RamLine {
         RamLine(int index) : traced_(false), data_( std::byte{0} ), index_( index ) {};
@@ -72,9 +75,10 @@ public:
         auto operator[]( int index ) -> RamLine& {
             return lines_[index];
         }
+
+        std::vector< int > bankMirrors_;
         private:
             std::vector< RamLine > lines_;
-            std::vector< int > bankMirrors_;
             int bankNum_;
     };
 

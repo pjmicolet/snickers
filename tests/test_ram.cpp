@@ -40,6 +40,13 @@ bool test_banks() {
     passed &= ram[ 0x000019 ] == ram[ 0x010032 ];
     passed &= ram[ 0x000019 ] != ram[ 0x010019 ]; // Just make sure banks are being read correctly
     passed &= ram[ 0x010000 ].bank_ == 1; // better way to do it
+
+    // Awful way to setup mirrors since it's obvious that if 1 has 2 as a mirror then 2 has 1 as a mirror
+    RAM ramWithMirror = RAM( 200, 2, { { 0, { 1 } }, { 1, { 0 } } } );
+    
+    ramWithMirror.store( 0x000001, std::byte{ 20 } );
+    passed &= ( ramWithMirror[ 0x000001 ] == ramWithMirror[ 0x010001 ] ) && ( ramWithMirror[ 0x010001 ] == std::byte{ 20 } );
+
     return passed;
 }
 

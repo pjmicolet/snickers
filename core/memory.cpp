@@ -1,13 +1,18 @@
 #include "memory.h"
 
-RAM::RAM( size_t ramSize, int banks ) noexcept : banks_(banks) {
+RAM::RAM( size_t ramSize, int banks, Mirrors mirrors ) noexcept : banks_(banks) {
     ram_.reserve( banks );
     int ramLines = ramSize/banks;
     int8_t bank = 0;
     this->lines_ = ramLines;
 
     for( int i = 0; i < banks; i++ )
-        ram_.emplace_back( (size_t) ramLines, i );
+    {
+        if( mirrors.contains( i ) )
+            ram_.emplace_back( (size_t) ramLines, i, mirrors[i] );
+        else
+            ram_.emplace_back( (size_t) ramLines, i );
+    }
 
     for( auto& ramBank : ram_ ) {
         for( int i = 0; i < ramLines; i++ )
@@ -69,5 +74,11 @@ auto RAM::store( int index, std::byte data ) -> void {
 auto RAM::store( int index, std::byte data ) noexcept -> void {
 #endif
     auto bankIndex = calculateBank( index );
+    auto mirrorBanks = ram_[bankIndex.first].bankMirrors_;
+    if( !mirrorBanks.empty() ) {
+        for( auto& bank : mirrorBanks )
+            ram_[bank][ bankIndex.second ] = data;
+    }
+
     ram_[bankIndex.first][ bankIndex.second ] = data;
 }
