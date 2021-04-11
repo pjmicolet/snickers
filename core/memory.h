@@ -34,6 +34,7 @@ public:
             return os << "RAM[" << std::hex << data.index_ << "]";
         }
 
+        // If we hold a reference to RAM in the RamLine then we could support mirroring using the [] operator 
         auto operator= ( std::byte data ) -> RamLine& {
             if( traced_ )
                 std::cout << this << std::hex << " = 0x"<< std::to_integer<uint16_t>( data_ ) << " -> 0x" << std::to_integer<uint16_t>( data ) << "\n";
