@@ -42,6 +42,7 @@ RAM::RAM( size_t ramSize, std::vector<int>& tracedLines, int banks ) noexcept : 
     }
 }
 
+// Wont check mirrors, but then again we should assume mirrors were setup correctly!
 auto RAM::validateRAM( bankIndexPair& pair ) -> void {
     bool bankIssue = pair.first > ( banks_ - 1 );
     bool lineIssue = pair.second > ( lines_ - 1 );
@@ -54,11 +55,7 @@ auto RAM::validateRAM( bankIndexPair& pair ) -> void {
 
 // For SNES we have something like 0xBBIIII
 // where BB is the bank number and IIII is the index of the bank we're accessing
-#if DEBUG
-auto RAM::calculateBank( int index ) -> bankIndexPair {
-#else
-auto RAM::calculateBank( int index ) noexcept -> bankIndexPair {
-#endif
+auto RAM::calculateBank( int index ) noexcept(THROW_ON_DEBUG) -> bankIndexPair {
     auto bank = ( index & 0xFF0000 ) >> 16;
     auto subindex = ( index & 0xFFFF );
     auto bankIndex = std::make_pair( bank, subindex );
@@ -68,11 +65,7 @@ auto RAM::calculateBank( int index ) noexcept -> bankIndexPair {
     return bankIndex; 
 }
 
-#if DEBUG
-auto RAM::store( int index, std::byte data ) -> void {
-#else
-auto RAM::store( int index, std::byte data ) noexcept -> void {
-#endif
+auto RAM::store( int index, std::byte data ) noexcept(THROW_ON_DEBUG) -> void {
     auto bankIndex = calculateBank( index );
     auto mirrorBanks = ram_[bankIndex.first].bankMirrors_;
     if( !mirrorBanks.empty() ) {

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <utility>
 #include <unordered_map>
+#include "base.h"
 
 class RamException : public std::exception {
 public:
@@ -83,29 +84,16 @@ public:
             int bankNum_;
     };
 
-#if DEBUG
-    auto operator[]( int index ) -> RamLine& {
-#else
-    auto operator[]( int index ) noexcept -> RamLine& {
-#endif
+    auto operator[]( int index ) noexcept(THROW_ON_DEBUG) -> RamLine& {
         auto bankIndex = calculateBank( index );
         return ram_[bankIndex.first][ bankIndex.second ];
     }
 
-#if DEBUG
-    auto store( int index, std::byte data ) -> void;
-#else
-    auto store( int index, std::byte data ) noexcept -> void;
-#endif
-
+    auto store( int index, std::byte data ) noexcept(THROW_ON_DEBUG) -> void;
 
 private:
     using bankIndexPair = std::pair<int,int>;
-#if DEBUG
-    auto calculateBank( int index ) -> bankIndexPair;
-#else
-    auto calculateBank( int index ) noexcept -> bankIndexPair;
-#endif
+    auto calculateBank( int index ) noexcept(THROW_ON_DEBUG) -> bankIndexPair;
     std::vector< Bank > ram_;
     auto validateRAM( bankIndexPair& pair ) -> void;
     int banks_;
