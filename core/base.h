@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef DEBUG
-#define THROW_ON_DEBUG true
+#define DONT_THROW false
 #else
-#define THROW_ON_DEBUG false
+#define DONT_THROW true
 #endif
