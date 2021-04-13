@@ -1,1 +1,6 @@
 notes/*
+*/*.swp
+*.swp
+build/
+*/a.out
+a.out
