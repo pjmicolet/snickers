@@ -2,7 +2,7 @@
 #include "test_utils.h"
 #include "../utils/type_utils.h"
 
-bool test_type_basic() {
+auto test_type_basic() -> bool {
     uint8_t singleByte = 120;
     auto byteArray = integerToByteV<uint8_t>( singleByte );
 
@@ -37,7 +37,7 @@ bool test_type_basic() {
     return true;
 }
 
-bool test_typeutils() {
+auto test_typeutils() -> bool {
     bool passed = true;
     RUN_TEST( test_type_basic() );
     return passed;

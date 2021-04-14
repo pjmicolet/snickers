@@ -2,7 +2,7 @@
 #include <iostream>
 #include "test_utils.h"
 
-bool test_basic() {
+auto test_basic() -> bool {
     // Only a single bank, 10 lines
     bool passed = true;
     RAM ram = RAM( 10 );
@@ -19,7 +19,7 @@ bool test_basic() {
     return passed;
 }
 
-bool test_banks() {
+auto test_banks() -> bool {
     bool passed = true;
     RAM ram = RAM( 200, 2 ); // That's 2 banks each with 100 lines;
     // We run this in debug mode which will do a check 
@@ -50,7 +50,7 @@ bool test_banks() {
     return passed;
 }
 
-bool test_ram() {
+auto test_ram() -> bool {
     bool passed = true;
     RUN_TEST( test_basic() );
     RUN_TEST( test_banks() );

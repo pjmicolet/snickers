@@ -2,7 +2,7 @@
 #include <iostream>
 #include "test_utils.h"
 
-bool test_basic_load() {
+auto test_basic_load() -> bool {
     Rom rom( "./Ladida_lol.sfc");    
 
     if( rom.size() == 0 )
@@ -11,7 +11,7 @@ bool test_basic_load() {
     return true;
 }
 
-bool test_wrong_path() {
+auto test_wrong_path() -> bool {
     bool pass = false;
     try {
         Rom rom( "nowhereland" );
@@ -22,7 +22,7 @@ bool test_wrong_path() {
     return pass;
 }
 
-bool test_rom() {
+auto test_rom() -> bool {
     bool passed = true;
     RUN_TEST( test_basic_load() );
     RUN_TEST( test_wrong_path() );

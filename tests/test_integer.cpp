@@ -2,7 +2,7 @@
 #include "test_utils.h"
 #include <iostream>
 
-bool test_basic_integer()
+auto test_basic_integer() -> bool
 {
 	Integer<15> a{};
 	a = 10;
@@ -12,7 +12,7 @@ bool test_basic_integer()
 	return true;
 }
     
-bool test_integer()
+auto test_integer() -> bool
 {
     bool passed = true;
     RUN_TEST( test_basic_integer() );
