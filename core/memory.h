@@ -26,10 +26,10 @@ public:
     RAM( size_t ramSize, std::vector<int>& tracedLines, int banks = 1, Mirrors mirrors = {} ) noexcept;
 
     struct RamLine {
-        RamLine(int index) : traced_(false), data_( std::byte{0} ), index_( index ) {};
-        RamLine(int index, int8_t bank) : traced_(false), data_( std::byte{0} ), index_( index ), bank_( bank ) {};
-        RamLine(int index, bool traced) : traced_(traced), data_( std::byte{0} ), index_( index ) {};
-        RamLine(int index, int8_t bank, bool traced) : traced_(traced), data_( std::byte{0} ), index_( index ), bank_( bank ) {};
+        RamLine(int index) : data_( std::byte{0} ), traced_(false), index_( index ) {};
+        RamLine(int index, int8_t bank) : bank_( bank ), data_( std::byte{0} ), traced_(false), index_( index ) {};
+        RamLine(int index, bool traced) : data_( std::byte{0} ), traced_(false), index_( index ) {};
+        RamLine(int index, int8_t bank, bool traced) :  bank_( bank ), data_( std::byte{0} ), traced_(false), index_( index ) {};
 
         friend auto operator<< (std::ostream& os, const RamLine& data ) -> std::ostream& {
             return os << "RAM[" << std::hex << data.index_ << "]";
@@ -56,6 +56,12 @@ public:
 
         auto operator== ( const RamLine& line ) const -> bool {
             return data_ == line.data_;
+        }
+    
+        auto load() -> std::byte {
+            if( traced_ )
+                std::cout << "Loading " << this << "\n";
+            return data_;
         }
 
         int8_t bank_;
@@ -84,16 +90,19 @@ public:
             int bankNum_;
     };
 
-    auto operator[]( int index ) noexcept(THROW_ON_DEBUG) -> RamLine& {
+    auto load( int index ) noexcept(DONT_THROW) -> std::byte;
+    auto store( int index, std::byte data ) noexcept(DONT_THROW) -> void;
+    auto addressToBank( int address ) noexcept(DONT_THROW) -> int;
+
+private:
+    // Do we really need this at any point ?
+    auto operator[]( int index ) noexcept(DONT_THROW) -> RamLine& {
         auto bankIndex = calculateBank( index );
         return ram_[bankIndex.first][ bankIndex.second ];
     }
 
-    auto store( int index, std::byte data ) noexcept(THROW_ON_DEBUG) -> void;
-
-private:
     using bankIndexPair = std::pair<int,int>;
-    auto calculateBank( int index ) noexcept(THROW_ON_DEBUG) -> bankIndexPair;
+    auto calculateBank( int index ) noexcept(DONT_THROW) -> bankIndexPair;
     std::vector< Bank > ram_;
     auto validateRAM( bankIndexPair& pair ) -> void;
     int banks_;
