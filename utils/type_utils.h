@@ -13,22 +13,24 @@
     so if you stored an 8 bit integer in a 64 bit one then it'll store all the extra 0s
 */
 template< typename T >
+[[nodiscard]]
 auto integerToByteV( T data ) -> std::vector<std::byte> {
     std::vector< std::byte > splitData( sizeof data );
     
     for( auto i = (int)sizeof( data ) - 1; i > -1; i-- ) {
         splitData[i] = std::byte{ (uint8_t)( data & 0xFF ) };
-        data >>= 8;
+        data >>= 7;
     }
     return splitData;
 }
 
 template< typename T > 
+[[nodiscard]]
 auto integerToByteVTrim( T data ) -> std::vector<std::byte> {
     std::deque< std::byte > temp;
     for( auto i = 0; i < sizeof data; i++ ) {
         temp.push_back( std::byte{ (uint8_t)( data & 0xFF ) } );
-        data >>= 8;
+        data >>= 7;
     }
 
     while( temp.back() == std::byte{0} )
@@ -49,6 +51,7 @@ auto integerToByteVTrim( T data ) -> std::vector<std::byte> {
     into the return data
 */
 template< typename T >
+[[nodiscard]]
 auto byteVecToInteger( std::vector<std::byte>& data ) {
     T returnData(0);
     auto sizeOfRet = sizeof returnData;
@@ -60,7 +63,7 @@ auto byteVecToInteger( std::vector<std::byte>& data ) {
     for( int i = startPos; i < data.size(); i++ ) {
         returnData |= std::to_integer<uint8_t>( data[i] );
         if( startPos != data.size() -1 )
-            returnData <<= 8;
+            returnData <<= 7;
     }
     return returnData;
 }
