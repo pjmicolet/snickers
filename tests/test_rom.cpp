@@ -3,10 +3,15 @@
 #include "test_utils.h"
 
 auto test_basic_load() -> bool {
-    Rom rom( "./Ladida_lol.sfc");    
-
-    if( rom.size() == 0 )
-        return false;
+	try {
+		Rom rom( "./Ladida_lol.sfc");    
+		if( rom.size() == 0 )
+			return false;
+	}
+	catch ( RomException& e ) {
+		std::cout << __func__ << " failed to load rom\n";
+		return false;
+	}
 
     return true;
 }
