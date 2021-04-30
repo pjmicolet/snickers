@@ -1,31 +1,30 @@
 #pragma once
 
-#include <string>
 #include <cstddef>
 #include <filesystem>
+#include <string>
 #include <vector>
 
 class RomException : public std::exception {
 public:
-    RomException( std::string message ) : exception_msg_( message ) {};
-    virtual const char* what() const throw() {
-        return exception_msg_.c_str();
-    }    
+  RomException(std::string message) : exception_msg_(message){};
+  virtual const char *what() const throw() { return exception_msg_.c_str(); }
+
 private:
-    std::string exception_msg_;
+  std::string exception_msg_;
 };
 
 class Rom {
 public:
-    // For testing only
-    Rom(const std::filesystem::path& rom_path);
+  // For testing only
+  Rom(const std::filesystem::path &rom_path);
 
-    Rom() {};
+  Rom(){};
 
-    // Could be in utils idk
-    auto load_rom(const std::filesystem::path& path) -> bool;
-    auto size()->size_t { return data_.size(); };
-    
+  // Could be in utils idk
+  auto load_rom(const std::filesystem::path &path) -> bool;
+  auto size() -> size_t { return data_.size(); };
+
 private:
-    std::vector<std::byte> data_;
+  std::vector<std::byte> data_;
 };
