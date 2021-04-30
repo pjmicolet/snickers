@@ -26,9 +26,9 @@ public:
     RAM( size_t ramSize, std::vector<int>& tracedLines, int banks = 1, Mirrors mirrors = {} ) noexcept;
 
     struct RamLine {
-        RamLine(int index) : data_( std::byte{0} ), traced_(false), index_( index ) {};
+        RamLine(int index) : bank_( 0 ), data_( std::byte{0} ), traced_(false), index_( index ) {};
         RamLine(int index, int8_t bank) : bank_( bank ), data_( std::byte{0} ), traced_(false), index_( index ) {};
-        RamLine(int index, bool traced) : data_( std::byte{0} ), traced_(false), index_( index ) {};
+        RamLine(int index, bool traced) : bank_( 0 ), data_( std::byte{0} ), traced_(false), index_( index ) {};
         RamLine(int index, int8_t bank, bool traced) :  bank_( bank ), data_( std::byte{0} ), traced_(false), index_( index ) {};
 
         friend auto operator<< (std::ostream& os, const RamLine& data ) -> std::ostream& {
@@ -64,20 +64,20 @@ public:
             return data_;
         }
 
-        int8_t bank_;
+        const int8_t bank_;
         protected:
             std::byte data_;
 
         private:
             bool traced_;
-            int index_;
+            const int index_;
     };
 
     struct Bank {
         Bank( size_t numLines, int bankNum ) : bankNum_( bankNum ) { lines_.reserve(numLines); };
         Bank( size_t numLines, int bankNum, std::vector<int> bankMirrors ) : bankMirrors_( bankMirrors ), bankNum_( bankNum ) { lines_.reserve( numLines ); }; // std::move ?
         
-        inline void populate( int index, bool traced = false ) {
+        inline void populate( const int index, bool traced = false ) {
            lines_.emplace_back( index, bankNum_, traced );
         }   
         auto operator[]( int index ) -> RamLine& {
@@ -87,12 +87,12 @@ public:
         std::vector< int > bankMirrors_;
         private:
             std::vector< RamLine > lines_;
-            int bankNum_;
+            const int bankNum_;
     };
 
-    auto load( int index ) noexcept(DONT_THROW) -> std::byte;
-    auto store( int index, std::byte data ) noexcept(DONT_THROW) -> void;
-    auto addressToBank( int address ) noexcept(DONT_THROW) -> int;
+    auto load( const int index ) noexcept(DONT_THROW) -> std::byte;
+    auto store( const int index, const std::byte data ) noexcept(DONT_THROW) -> void;
+    auto addressToBank( int address ) const noexcept(DONT_THROW) -> int;
 
 private:
     // Do we really need this at any point ?
@@ -102,9 +102,9 @@ private:
     }
 
     using bankIndexPair = std::pair<int,int>;
-    auto calculateBank( int index ) noexcept(DONT_THROW) -> bankIndexPair;
+    auto calculateBank( int index ) const noexcept(DONT_THROW) -> bankIndexPair;
+    auto validateRAM( bankIndexPair& pair ) const -> void;
     std::vector< Bank > ram_;
-    auto validateRAM( bankIndexPair& pair ) -> void;
-    int banks_;
-    int lines_;
+    const int banks_;
+    const int lines_;
 };
