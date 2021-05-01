@@ -4,3 +4,10 @@
     passed = false;                                                            \
   } else                                                                       \
     std::cout << #test << " has succeeded!\n";
+
+#define REQUIRE_EQUAL(lhval, rhval)                                            \
+  if (lhval != rhval) {                                                        \
+    std::cout << "Failure in test " << __func__ << ":" << __LINE__ << " "      \
+              << lhval << " is not equal to " << rhval << "\n";                \
+    passed = false;                                                            \
+  }\

@@ -5,43 +5,37 @@
 #include <type_traits>
 
 template <uint8_t n> class Integer {
+  using stored_type = std::conditional_t<
+      n <= 8, int8_t,
+      std::conditional_t<
+          n <= 16, int16_t,
+          std::conditional_t<n <= 32, int32_t,
+                             std::conditional_t<n <= 64, int64_t, void>>>>;
+
 public:
   Integer() {
     value = 0;
     size = n;
-    stored_type zero = 0;
-    bitmask = ~zero;
+    bitmask = (1<<n)-1;
   }
 
   Integer(int val) {
     size = n;
     stored_type zero = 0;
-    bitmask = ~zero;
+    bitmask = (1<<n)-1;
     value = val & bitmask;
   }
 
-  auto operator=(const int rval) -> Integer & {
-    value = static_cast<stored_type>(rval & bitmask);
+  operator stored_type() const { return value; }
+
+  auto operator=(const int rval) -> Integer<n> & {
+    value = static_cast<stored_type>(rval) & bitmask;
     return *this;
   }
 
   template <uint8_t otherSize>
-  auto operator+(const Integer<otherSize> &rval) -> Integer<n> {
-    Integer<n> res;
-    res.value = (rval.getVal() & bitmask) + value;
-    return res;
-  }
-
-  template <uint8_t otherSize>
-  auto operator-(const Integer<otherSize> &rval) -> Integer<n> {
-    Integer<n> res;
-    res.value = (rval.getVal() & bitmask) + value;
-    return res;
-  }
-
-  template <uint8_t otherSize>
   auto operator=(const Integer<otherSize> &rval) -> Integer<n> & {
-    value = rval.getVal() & bitmask;
+    value = static_cast<stored_type>(rval) & bitmask;
     return *this;
   }
 
@@ -76,15 +70,7 @@ public:
     return os;
   }
 
-  auto getVal() const { return value; }
-
 private:
-  using stored_type = std::conditional_t<
-      n <= 8, int8_t,
-      std::conditional_t<
-          n <= 16, int16_t,
-          std::conditional_t<n <= 32, int32_t,
-                             std::conditional_t<n <= 64, int64_t, void>>>>;
   stored_type value;
   stored_type bitmask;
   uint8_t size;

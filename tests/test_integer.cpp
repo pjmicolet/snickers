@@ -1,13 +1,15 @@
 #include "../utils/integer/integer.h"
 #include "test_utils.h"
 #include <iostream>
+#include <typeinfo>
 
 auto test_basic_integer() -> bool {
-  Integer<15> a{};
-  a = 10;
-  Integer<17> b{};
-  b = 131071;
-  a = b;
+	bool passed = true;
+  Integer<4> small{};
+  small = 3;
+  REQUIRE_EQUAL(small, 3);
+	small = 0xFF;
+	REQUIRE_EQUAL(small, 0xF);
   return true;
 }
 
