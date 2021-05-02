@@ -17,12 +17,12 @@ private:
 
 class RAM {
 public:
-  using Mirrors = std::unordered_map<int, std::vector<int>>;
+  using Mirrors = std::unordered_map<int, std::vector<unsigned int>>;
   // Don't want a default constructor because it means very little
   RAM() = delete;
-  RAM(size_t ramSize, int banks = 1, Mirrors mirrors = {}) noexcept;
-  RAM(size_t ramSize, std::vector<int> &tracedLines, int banks = 1) noexcept;
-  RAM(size_t ramSize, std::vector<int> &tracedLines, int banks = 1,
+  RAM(size_t ramSize, unsigned int banks = 1, Mirrors mirrors = {}) noexcept;
+  RAM(size_t ramSize, std::vector<int> &tracedLines, unsigned int banks = 1) noexcept;
+  RAM(size_t ramSize, std::vector<int> &tracedLines, unsigned int banks = 1,
       Mirrors mirrors = {})
   noexcept;
 
@@ -84,10 +84,10 @@ public:
   };
 
   struct Bank {
-    Bank(size_t numLines, int bankNum) : bankNum_(bankNum) {
+    Bank(size_t numLines, unsigned int bankNum) : bankNum_(bankNum) {
       lines_.reserve(numLines);
     };
-    Bank(size_t numLines, int bankNum, std::vector<int> bankMirrors)
+    Bank(size_t numLines, unsigned int bankNum, std::vector<unsigned int> bankMirrors)
         : bankMirrors_(bankMirrors), bankNum_(bankNum) {
       lines_.reserve(numLines);
     }; // std::move ?
@@ -95,31 +95,31 @@ public:
     inline void populate(const int index, bool traced = false) {
       lines_.emplace_back(index, bankNum_, traced);
     }
-    auto operator[](int index) -> RamLine & { return lines_[index]; }
+    auto operator[](unsigned int index) -> RamLine & { return lines_[index]; }
 
-    std::vector<int> bankMirrors_;
+    std::vector<unsigned int> bankMirrors_;
 
   private:
     std::vector<RamLine> lines_;
-    const int bankNum_;
+    const unsigned int bankNum_;
   };
 
-  auto load(const int index) noexcept(DONT_THROW) -> std::byte;
-  auto store(const int index, const std::byte data) noexcept(DONT_THROW)
+  auto load(const unsigned int index) noexcept(DONT_THROW) -> std::byte;
+  auto store(const unsigned int index, const std::byte data) noexcept(DONT_THROW)
       -> void;
-  auto addressToBank(int address) const noexcept(DONT_THROW) -> int;
+  auto addressToBank(const unsigned int address) const noexcept(DONT_THROW) -> unsigned int;
 
 private:
   // Do we really need this at any point ?
-  auto operator[](int index) noexcept(DONT_THROW) -> RamLine & {
+  auto operator[](unsigned int index) noexcept(DONT_THROW) -> RamLine & {
     auto bankIndex = calculateBank(index);
     return ram_[bankIndex.first][bankIndex.second];
   }
 
-  using bankIndexPair = std::pair<int, int>;
-  auto calculateBank(int index) const noexcept(DONT_THROW) -> bankIndexPair;
+  using bankIndexPair = std::pair<unsigned int, unsigned int>;
+  auto calculateBank(unsigned int index) const noexcept(DONT_THROW) -> bankIndexPair;
   auto validateRAM(bankIndexPair &pair) const -> void;
   std::vector<Bank> ram_;
-  const int banks_;
-  const int lines_;
+  const size_t banks_;
+  const size_t lines_;
 };

@@ -16,9 +16,11 @@ template <typename T>
 [[nodiscard]] auto integerToByteV(T data) -> std::vector<std::byte> {
   std::vector<std::byte> splitData(sizeof data);
 
-  for (auto i = (int)sizeof(data) - 1; i > -1; i--) {
+  for (auto i = sizeof(data) - 1;; i--) {
     splitData[i] = std::byte{(uint8_t)(data & 0xFF)};
     data >>= 7;
+		if(i == 0)
+			break;
   }
   return splitData;
 }
@@ -35,8 +37,11 @@ template <typename T>
     temp.pop_back();
 
   std::vector<std::byte> actualVec(temp.size());
-  for (auto i = (int)temp.size() - 1; i > -1; i--)
+  for (auto i = temp.size() - 1;; i--) {
     actualVec[i] = temp[i];
+		if(i == 0)
+			break;
+	}
 
   return actualVec;
 }
@@ -51,12 +56,12 @@ template <typename T>
 [[nodiscard]] auto byteVecToInteger(std::vector<std::byte> &data) {
   T returnData(0);
   auto sizeOfRet = sizeof returnData;
-  auto startPos = (int)data.size() - (int)sizeOfRet;
+  auto startPos = data.size() - sizeOfRet;
 
   // Sometimes this happens if we're putting  a smaller thing in a lerger thing
   if (startPos < 0)
     startPos = 0;
-  for (int i = startPos; i < data.size(); i++) {
+  for (size_t i = startPos; i < data.size(); i++) {
     returnData |= std::to_integer<uint8_t>(data[i]);
     if (startPos != data.size() - 1)
       returnData <<= 7;

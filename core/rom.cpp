@@ -26,7 +26,7 @@ auto Rom::load_rom(const std::filesystem::path &path) -> bool {
     return false;
 
   data_.resize(size);
-  if (!rom.read((char *)data_.data(), data_.size()))
+  if (!rom.read((char *)data_.data(), static_cast<std::streamsize>(data_.size())))
     return false;
 
   return true;
