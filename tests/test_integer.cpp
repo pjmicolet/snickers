@@ -5,20 +5,18 @@
 
 auto test_basic_integer() -> bool {
   bool passed = true;
-  Integer<4> small{};
-  small = 3;
-  REQUIRE_EQUAL(small, 3);
-  small = 0xFF;
-  REQUIRE_EQUAL(small, 0xF);
+  constexpr Integer<4> small = 3;
+  STATIC_REQUIRE_EQUAL(small, 3);
+  constexpr Integer<4> small2 = 0xFF;
+  STATIC_REQUIRE_EQUAL(small2, 0xF);
 
-  Integer<12> not_as_small{};
-  not_as_small = 0b101010101101;
-  REQUIRE_EQUAL(not_as_small.bit(0), 1);
-  REQUIRE_EQUAL(not_as_small.bit(1), 0);
+  constexpr Integer<12> not_as_small = 0b101010101101;
+  STATIC_REQUIRE_EQUAL(not_as_small.bit(0), 1);
+  STATIC_REQUIRE_EQUAL(not_as_small.bit(1), 0);
 
-  Integer<16> convert = small;
-  REQUIRE_EQUAL(convert, 0xF);
-  return true;
+  constexpr Integer<16> convert = small2;
+  STATIC_REQUIRE_EQUAL(convert, 0xF);
+  return passed;
 }
 
 auto test_integer() -> bool {

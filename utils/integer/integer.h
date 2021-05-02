@@ -22,28 +22,29 @@ template <uint8_t n> class Integer {
   }
 
 public:
-  Integer() : bitmask_(createBitmask(n)), size_(n) { value_ = 0; }
+  constexpr Integer() : bitmask_(createBitmask(n)), size_(n) { value_ = 0; }
 
-  Integer(int val) : bitmask_(createBitmask(n)), size_(n) {
-    stored_type zero = 0;
+  constexpr Integer(const int val) : bitmask_(createBitmask(n)), size_(n) {
     value_ = val & bitmask_;
   }
 
   template <uint8_t size>
-  Integer(Integer<size> &other) : bitmask_(createBitmask(n)), size_(n) {
+  constexpr Integer(const Integer<size> &other)
+      : bitmask_(createBitmask(n)), size_(n) {
     value_ = other;
     value_ &= bitmask_;
   }
 
-  operator stored_type() const { return value_; }
+  constexpr operator stored_type() const noexcept { return value_; }
 
-  auto operator=(const int rval) -> Integer<n> & {
+  constexpr auto operator=(const int rval) noexcept -> Integer<n> & {
     value_ = static_cast<stored_type>(rval) & bitmask_;
     return *this;
   }
 
   template <uint8_t otherSize>
-  auto operator=(const Integer<otherSize> &rval) -> Integer<n> & {
+  constexpr auto operator=(const Integer<otherSize> &rval) noexcept
+      -> Integer<n> & {
     value_ = static_cast<stored_type>(rval) & bitmask_;
     return *this;
   }
@@ -79,7 +80,9 @@ public:
     return os;
   }
 
-  auto bit(int index) -> stored_type { return (value_ >> index) & 0x1; }
+  constexpr auto bit(int index) const noexcept -> stored_type {
+    return (value_ >> index) & 0x1;
+  }
 
 private:
   stored_type value_;

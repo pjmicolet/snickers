@@ -10,4 +10,7 @@
     std::cout << "Failure in test " << __func__ << ":" << __LINE__ << " "      \
               << lhval << " is not equal to " << rhval << "\n";                \
     passed = false;                                                            \
-  }\
+  }
+
+#define STATIC_REQUIRE_EQUAL(lhval, rhval)                                     \
+  static_assert(lhval == rhval, "Values must be the same!");\

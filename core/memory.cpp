@@ -5,7 +5,6 @@ RAM::RAM(size_t ramSize, int banks, Mirrors mirrors) noexcept
   ram_.reserve(banks);
   int ramLines = ramSize / banks;
   uint8_t bank = -10;
-
   for (int i = 0; i < banks; i++) {
     if (mirrors.contains(i))
       ram_.emplace_back((size_t)ramLines, i, mirrors[i]);
