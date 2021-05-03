@@ -19,7 +19,8 @@ RAM::RAM(size_t ramSize, unsigned int banks, Mirrors mirrors) noexcept
   }
 }
 
-RAM::RAM(size_t ramSize, std::vector<int> &tracedLines, unsigned int banks) noexcept
+RAM::RAM(size_t ramSize, std::vector<int> &tracedLines,
+         unsigned int banks) noexcept
     : banks_(banks), lines_(ramSize / banks) {
   ram_.reserve(banks);
   auto ramLines = ramSize / banks;
@@ -59,7 +60,8 @@ auto RAM::validateRAM(bankIndexPair &pair) const -> void {
 
 // For SNES we have something like 0xBBIIII
 // where BB is the bank number and IIII is the index of the bank we're accessing
-auto RAM::calculateBank(unsigned int index) const noexcept(DONT_THROW) -> bankIndexPair {
+auto RAM::calculateBank(unsigned int index) const noexcept(DONT_THROW)
+    -> bankIndexPair {
   auto bank = (index & 0xFF0000) >> 16;
   auto subindex = (index & 0xFFFF);
   auto bankIndex = std::make_pair(bank, subindex);
@@ -69,18 +71,20 @@ auto RAM::calculateBank(unsigned int index) const noexcept(DONT_THROW) -> bankIn
   return bankIndex;
 }
 
-auto RAM::addressToBank(const unsigned int address) const noexcept(DONT_THROW) -> unsigned int {
+auto RAM::addressToBank(const unsigned int address) const noexcept(DONT_THROW)
+    -> unsigned int {
   auto bankIndex = calculateBank(address);
   return bankIndex.first;
 }
 
-auto RAM::load(const unsigned int index) noexcept(DONT_THROW) -> std::byte {
+auto RAM::load(const unsigned int index) noexcept(DONT_THROW)
+    -> const std::byte & {
   auto bankIndex = calculateBank(index);
   return ram_[bankIndex.first][bankIndex.second].load();
 }
 
-auto RAM::store(const unsigned int index, const std::byte data) noexcept(DONT_THROW)
-    -> void {
+auto RAM::store(const unsigned int index,
+                const std::byte data) noexcept(DONT_THROW) -> void {
   auto bankIndex = calculateBank(index);
   auto mirrorBanks = ram_[bankIndex.first].bankMirrors_;
   if (!mirrorBanks.empty()) {

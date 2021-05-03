@@ -21,7 +21,8 @@ public:
   // Don't want a default constructor because it means very little
   RAM() = delete;
   RAM(size_t ramSize, unsigned int banks = 1, Mirrors mirrors = {}) noexcept;
-  RAM(size_t ramSize, std::vector<int> &tracedLines, unsigned int banks = 1) noexcept;
+  RAM(size_t ramSize, std::vector<int> &tracedLines, unsigned int banks = 1)
+  noexcept;
   RAM(size_t ramSize, std::vector<int> &tracedLines, unsigned int banks = 1,
       Mirrors mirrors = {})
   noexcept;
@@ -67,7 +68,7 @@ public:
       return data_ == line.data_;
     }
 
-    auto load() -> std::byte {
+    auto load() -> const std::byte & {
       if (traced_)
         std::cout << "Loading " << this << "\n";
       return data_;
@@ -87,7 +88,8 @@ public:
     Bank(size_t numLines, unsigned int bankNum) : bankNum_(bankNum) {
       lines_.reserve(numLines);
     };
-    Bank(size_t numLines, unsigned int bankNum, std::vector<unsigned int> bankMirrors)
+    Bank(size_t numLines, unsigned int bankNum,
+         std::vector<unsigned int> bankMirrors)
         : bankMirrors_(bankMirrors), bankNum_(bankNum) {
       lines_.reserve(numLines);
     }; // std::move ?
@@ -104,10 +106,11 @@ public:
     const unsigned int bankNum_;
   };
 
-  auto load(const unsigned int index) noexcept(DONT_THROW) -> std::byte;
-  auto store(const unsigned int index, const std::byte data) noexcept(DONT_THROW)
-      -> void;
-  auto addressToBank(const unsigned int address) const noexcept(DONT_THROW) -> unsigned int;
+  auto load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte &;
+  auto store(const unsigned int index,
+             const std::byte data) noexcept(DONT_THROW) -> void;
+  auto addressToBank(const unsigned int address) const noexcept(DONT_THROW)
+      -> unsigned int;
 
 private:
   // Do we really need this at any point ?
@@ -117,7 +120,8 @@ private:
   }
 
   using bankIndexPair = std::pair<unsigned int, unsigned int>;
-  auto calculateBank(unsigned int index) const noexcept(DONT_THROW) -> bankIndexPair;
+  auto calculateBank(unsigned int index) const noexcept(DONT_THROW)
+      -> bankIndexPair;
   auto validateRAM(bankIndexPair &pair) const -> void;
   std::vector<Bank> ram_;
   const size_t banks_;
