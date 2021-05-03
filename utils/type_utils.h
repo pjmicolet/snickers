@@ -16,12 +16,12 @@ template <typename T>
 [[nodiscard]] auto integerToByteV(T data) -> std::vector<std::byte> {
   std::vector<std::byte> splitData(sizeof data);
 
-  for (auto i = sizeof(data) - 1;; i--) {
+  for (size_t i = 0; i < sizeof(data); i++) {
     splitData[i] = std::byte{(uint8_t)(data & 0xFF)};
-    data >>= 7;
-		if(i == 0)
-			break;
+    if constexpr (sizeof(data) > 1)
+      data >>= 8;
   }
+  std::reverse(splitData.begin(), splitData.end());
   return splitData;
 }
 
@@ -30,18 +30,13 @@ template <typename T>
   std::deque<std::byte> temp;
   for (auto i = 0; i < sizeof data; i++) {
     temp.push_back(std::byte{(uint8_t)(data & 0xFF)});
-    data >>= 7;
+    data >>= 8;
   }
 
   while (temp.back() == std::byte{0})
     temp.pop_back();
 
-  std::vector<std::byte> actualVec(temp.size());
-  for (auto i = temp.size() - 1;; i--) {
-    actualVec[i] = temp[i];
-		if(i == 0)
-			break;
-	}
+  std::vector<std::byte> actualVec(temp.rbegin(), temp.rend());
 
   return actualVec;
 }
@@ -55,12 +50,9 @@ template <typename T>
 template <typename T>
 [[nodiscard]] auto byteVecToInteger(std::vector<std::byte> &data) {
   T returnData(0);
-  auto sizeOfRet = sizeof returnData;
-  auto startPos = data.size() - sizeOfRet;
+  const auto startPos =
+      data.size() < sizeof returnData ? 0 : data.size() - sizeof returnData;
 
-  // Sometimes this happens if we're putting  a smaller thing in a lerger thing
-  if (startPos < 0)
-    startPos = 0;
   for (size_t i = startPos; i < data.size(); i++) {
     returnData |= std::to_integer<uint8_t>(data[i]);
     if (startPos != data.size() - 1)

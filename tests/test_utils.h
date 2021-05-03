@@ -23,3 +23,7 @@
 
 #define STATIC_REQUIRE_EQUAL(lhval, rhval)                                     \
   static_assert(lhval == rhval, "Values must be the same!");\
+
+#define BYTE_EQ(lhs,rhs) REQUIRE_EQUAL(std::to_integer<int>(lhs), std::to_integer<int>(rhs))
+#define BYTE_NEQ(lhs,rhs) REQUIRE_NOT_EQUAL(std::to_integer<int>(lhs), std::to_integer<int>(rhs))
+

@@ -2,9 +2,6 @@
 #include "test_utils.h"
 #include <iostream>
 
-#define BYTE_EQ(lhs,rhs) REQUIRE_EQUAL(std::to_integer<int>(lhs), std::to_integer<int>(rhs))
-#define BYTE_NEQ(lhs,rhs) REQUIRE_NOT_EQUAL(std::to_integer<int>(lhs), std::to_integer<int>(rhs))
-
 auto test_basic() -> bool {
   // Only a single bank, 10 lines
   bool passed = true;
