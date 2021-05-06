@@ -77,12 +77,6 @@ auto RAM::addressToBank(const unsigned int address) const noexcept(DONT_THROW)
   return bankIndex.first;
 }
 
-auto RAM::load(const unsigned int index) noexcept(DONT_THROW)
-    -> const std::byte & {
-  auto bankIndex = calculateBank(index);
-  return ram_[bankIndex.first][bankIndex.second].load();
-}
-
 auto RAM::store(const unsigned int index,
                 const std::byte data) noexcept(DONT_THROW) -> void {
   auto bankIndex = calculateBank(index);

@@ -106,7 +106,11 @@ public:
     const unsigned int bankNum_;
   };
 
-  auto load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte &;
+  [[nodiscard]] constexpr auto
+  load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte & {
+    auto bankIndex = calculateBank(index);
+    return ram_[bankIndex.first][bankIndex.second].load();
+  }
   auto store(const unsigned int index,
              const std::byte data) noexcept(DONT_THROW) -> void;
   auto addressToBank(const unsigned int address) const noexcept(DONT_THROW)
