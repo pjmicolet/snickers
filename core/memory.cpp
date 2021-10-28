@@ -5,7 +5,7 @@ RAM::RAM(size_t ramSize, unsigned int banks, Mirrors mirrors) noexcept
   ram_.reserve(banks);
   auto ramLines = ramSize / banks;
   int8_t bank = 0;
-  for (int i = 0; i < banks; i++) {
+  for (unsigned int i = 0; i < banks; i++) {
     if (mirrors.contains(i))
       ram_.emplace_back(ramLines, i, mirrors[i]);
     else
@@ -13,7 +13,7 @@ RAM::RAM(size_t ramSize, unsigned int banks, Mirrors mirrors) noexcept
   }
 
   for (auto &ramBank : ram_) {
-    for (int i = 0; i < ramLines; i++)
+    for (unsigned int i = 0; i < ramLines; i++)
       ramBank.populate(i);
     bank++;
   }
@@ -28,11 +28,11 @@ RAM::RAM(size_t ramSize, std::vector<int> &tracedLines,
   int lines = 0;
   int8_t bank = 0;
 
-  for (int i = 0; i < banks; i++)
+  for (unsigned int i = 0; i < banks; i++)
     ram_.emplace_back((size_t)ramLines, i);
 
   for (auto &ramBank : ram_) {
-    for (int i = 0; i < ramLines; i++, lines++) {
+    for (unsigned int i = 0; i < ramLines; i++, lines++) {
       bool trace = (int)lines == tracedLines[tracing];
       if (trace)
         tracing++;

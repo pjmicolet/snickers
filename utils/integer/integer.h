@@ -25,7 +25,7 @@ public:
   constexpr Integer() : bitmask_(createBitmask(n)), size_(n) { value_ = 0; }
 
   constexpr Integer(const int val) : bitmask_(createBitmask(n)), size_(n) {
-    value_ = val & bitmask_;
+    value_ = static_cast<stored_type>( val & static_cast<int>(bitmask_) );
   }
 
   template <uint8_t size>

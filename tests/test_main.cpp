@@ -12,5 +12,5 @@ int main() {
   RUN_TEST(test_rom());
   RUN_TEST(test_typeutils());
   RUN_TEST(test_integer());
-  return 0;
+  return passed;
 }

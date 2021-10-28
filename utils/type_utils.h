@@ -28,7 +28,7 @@ template <typename T>
 template <typename T>
 [[nodiscard]] auto integerToByteVTrim(T data) -> std::vector<std::byte> {
   std::deque<std::byte> temp;
-  for (auto i = 0; i < sizeof data; i++) {
+  for ( size_t i = 0; i < sizeof data; i++) {
     temp.push_back(std::byte{(uint8_t)(data & 0xFF)});
     data >>= 8;
   }
@@ -54,7 +54,7 @@ template <typename T>
       data.size() < sizeof returnData ? 0 : data.size() - sizeof returnData;
 
   for (size_t i = startPos; i < data.size(); i++) {
-    returnData |= std::to_integer<uint8_t>(data[i]);
+    returnData |= static_cast<T>( std::to_integer<uint8_t>(data[i]) );
     if (startPos != data.size() - 1)
       returnData <<= 7;
   }
