@@ -4,6 +4,7 @@ static MATH_OPS : [ char ; 4 ] = [ '+', '-', '*', '/' ];
 static CHARS : [ char ; 62 ] = [ 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z' ];
 static OPEN_BRACKETS : [ char ; 3 ]= [ '[', '(', '<' ];
 static CLOSED_BRACKETS : [ char ; 3 ] = [ ']', ')', '>' ];
+static ASSIGN : [ char ; 1 ] = [ '=' ];
 
 #[derive(Debug)]
 pub struct LexerError {
@@ -30,7 +31,8 @@ pub enum TokenType {
     OpenSqbr,
     CloseSqbr,
     OpenAngbr,
-    CloseAngbr
+    CloseAngbr,
+    Assign
 }
 
 pub struct Token {
@@ -49,6 +51,7 @@ impl fmt::Display for Token {
             TokenType::CloseSqbr => "CloseSqbr",
             TokenType::OpenAngbr => "OpenAngbr",
             TokenType::CloseAngbr => "CloseAngbr",
+            TokenType::Assign => "Assign"
         };
         write!( f, "str_form {}, token_type {}", self.str_form, ttype )
     }
@@ -69,6 +72,13 @@ pub fn create_tokens( line : String ) -> Result< Vec<Token>, LexerError > {
                     token_stack.clear();
                 }
                 tokens.push( Token { str_form:c.to_string(), token_type: TokenType::Math } );
+            }
+            else if ASSIGN.contains( &c ) {
+                if !token_stack.is_empty() {
+                    tokens.push( Token { str_form:token_stack.to_string(), token_type: TokenType::ID } );
+                    token_stack.clear();
+                }
+                tokens.push( Token { str_form:c.to_string(), token_type: TokenType::Assign } );
             }
             else if OPEN_BRACKETS.contains( &c ) || CLOSED_BRACKETS.contains( &c ) {
                 if !token_stack.is_empty() {
