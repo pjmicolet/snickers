@@ -39,8 +39,8 @@ pub enum TokenType {
 }
 
 pub struct Token {
-    str_form: String,
-    token_type : TokenType
+    pub str_form: String,
+    pub token_type : TokenType
 }
 
 impl fmt::Display for Token {
