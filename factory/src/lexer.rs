@@ -61,7 +61,7 @@ impl fmt::Display for Token {
     }
 }
 
-pub fn create_tokens( line : String ) -> Result< Vec<Token>, LexerError > {
+pub fn create_tokens( line : &String ) -> Result< Vec<Token>, LexerError > {
     let mut tokens = Vec::new();
     let mut token_stack : String = "".to_string();
     let mut is_string = false;
