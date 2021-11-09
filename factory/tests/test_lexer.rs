@@ -11,4 +11,9 @@ fn basic_lexing() {
     let token_2 = lexer::create_tokens( &"\"This is a string\"".to_string() ).expect( "Failure" );
     assert_eq!(1, token_2.len());
     matches!( token_2[0].token_type, lexer::TokenType::StringLiteral );
+
+    let funny_string = "\"'aqwe()<>>}{[][]}}'''''''''''''''''''\"";
+    let morechars_in_string = lexer::create_tokens( &funny_string.to_string() ).expect( "Failure");
+    assert_eq!(1, morechars_in_string.len());
+    assert_eq!( funny_string.to_string(), morechars_in_string[0].str_form);
 }
