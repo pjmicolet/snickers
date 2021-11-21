@@ -88,6 +88,13 @@ public:
     return (value_ >> index) & 0x1;
   }
 
+  // After looking at the nall code from higan I finally figured out that
+  // creating a stored_type operator allows you to expose the integer class to basic arithmetic operators
+  //
+  // Ideally I wont be using this because this means you have to force to then reconver to an Integer and the + operator
+  // wont guarantee any clamping
+  operator stored_type() { return value_; }
+
 private:
   stored_type value_;
   const stored_type bitmask_;
