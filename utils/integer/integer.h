@@ -31,13 +31,13 @@ public:
   template <uint8_t size>
   constexpr Integer(const Integer<size> &other)
       : bitmask_(createBitmask(n)), size_(n) {
-    value_ = other;
+    value_ = other._getVal();
     value_ &= bitmask_;
   }
 
   // Don't know if the no discard makes any sense here but don't convert
   // something and do nothing with it !
-  [[nodiscard]] constexpr operator stored_type() const noexcept {
+  [[nodiscard]] constexpr explicit operator stored_type() const noexcept {
     return value_;
   }
 
@@ -57,6 +57,10 @@ public:
     Integer<n> res;
     res.value_ = value_++;
     return res;
+  }
+
+  constexpr auto operator==(const stored_type& val) const -> bool {
+    return val == value_;
   }
 
   auto operator--(int val) -> Integer<n> {
@@ -88,15 +92,23 @@ public:
     return (value_ >> index) & 0x1;
   }
 
-  // After looking at the nall code from higan I finally figured out that
-  // creating a stored_type operator allows you to expose the integer class to basic arithmetic operators
-  //
-  // Ideally I wont be using this because this means you have to force to then reconver to an Integer and the + operator
-  // wont guarantee any clamping
-  operator stored_type() { return value_; }
+  //This is currently the bane of my existence since I don't want to allow users to get the value this way
+  constexpr auto _getVal() const noexcept -> stored_type {
+    return value_;
+  }
 
 private:
   stored_type value_;
   const stored_type bitmask_;
   const uint8_t size_;
 };
+
+template<uint8_t n1, uint8_t n2>
+auto operator +( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
+	std::cout << "Yeh";
+	if constexpr ( n1 < n2 )
+		return Integer< n2 >(lhs._getVal()+rhs._getVal());
+	else 
+		return Integer< n1 >(lhs._getVal()+rhs._getVal());
+}
+
