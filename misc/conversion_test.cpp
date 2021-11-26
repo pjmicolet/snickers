@@ -7,13 +7,13 @@ struct B;
 struct C {
 	C() = delete;
 	C( int t, const int n ) : a(t), n_(n) {};
+	constexpr C( const int n ) : n_( n ) {};
 	int a;
 	const int n_;
 };
 
 template<int n >
 struct A {
-	constexpr operator C() const { return C(a, n_); }
 	A( int t ) : a(t), n_(n) {};
 	int a;
 	const int n_;
@@ -40,12 +40,16 @@ auto operator +( const C& lhs, const C& rhs ) {
 int main() {
 	A<10> a(5000);
 	A<11> b(1234);
+	A<12> x(1234);
 	auto c = a+b;
 	auto d = b+a; // the same but swapped, I wish it wouldnt recreate another + operator though...
+	A<12> z = a + b + x;
 	//A<12> e = a + b; incorrect since it will instantiate a A<11>
 
-	std::cout << "Test " << c.n_ << "\n";
+	// Checking godbolt was interesting
+	// it's able to just figure out it doesn't even need the overloaded operator and just compiles it down to 5000 + 1234 so it gets rid of the overloaded operators
+	std::cout << "Test " << c.n_ << c,a << "\n";
 	std::cout << "Test " << d.n_ << "\n";
-	std::cout << "Test " << e.n_ << "\n";
+	std::cout << "Test " << z.n_ << "\n";
 	return 0;
 }
