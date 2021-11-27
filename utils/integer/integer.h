@@ -103,9 +103,10 @@ private:
   const uint8_t size_;
 };
 
+// Need to find a way to get access to the value without it being public
+// I want it to be a friend func but I can't get the Barton Nackman trick to work
 template<uint8_t n1, uint8_t n2>
 auto operator +( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-	std::cout << "Yeh";
 	if constexpr ( n1 < n2 )
 		return Integer< n2 >(lhs._getVal()+rhs._getVal());
 	else 
