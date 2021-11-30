@@ -1,4 +1,4 @@
-#include "../core/memory.h"
+#include "../cores/snes/memory.h"
 #include "test_utils.h"
 #include <iostream>
 
