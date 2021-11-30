@@ -37,8 +37,8 @@ public:
 
   // Don't know if the no discard makes any sense here but don't convert
   // something and do nothing with it !
-  [[nodiscard]] constexpr explicit operator stored_type() const noexcept {
-    return value_;
+  [[nodiscard]] constexpr operator stored_type() const noexcept {
+    return value_ & bitmask_;
   }
 
   constexpr auto operator=(const int rval) noexcept -> Integer<n> & {
@@ -57,10 +57,6 @@ public:
     Integer<n> res;
     res.value_ = value_++;
     return res;
-  }
-
-  constexpr auto operator==(const stored_type& val) const -> bool {
-    return val == value_;
   }
 
   auto operator--(int val) -> Integer<n> {
@@ -111,5 +107,22 @@ auto operator +( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
 		return Integer< n2 >(lhs._getVal()+rhs._getVal());
 	else 
 		return Integer< n1 >(lhs._getVal()+rhs._getVal());
+}
+
+// Is actually not commutative so this is technically correct
+template<uint8_t n1, uint8_t n2>
+auto operator -( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
+	if constexpr ( n1 < n2 )
+		return Integer< n2 >(lhs._getVal()-rhs._getVal());
+	else 
+		return Integer< n1 >(lhs._getVal()-rhs._getVal());
+}
+
+template<uint8_t n1, uint8_t n2>
+auto operator *( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
+	if constexpr ( n1 < n2 )
+		return Integer< n2 >(lhs._getVal()*rhs._getVal());
+	else 
+		return Integer< n1 >(lhs._getVal()*rhs._getVal());
 }
 
