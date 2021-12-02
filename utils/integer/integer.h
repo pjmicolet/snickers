@@ -103,26 +103,17 @@ private:
 // I want it to be a friend func but I can't get the Barton Nackman trick to work
 template<uint8_t n1, uint8_t n2>
 auto operator +( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-	if constexpr ( n1 < n2 )
-		return Integer< n2 >(lhs._getVal()+rhs._getVal());
-	else 
-		return Integer< n1 >(lhs._getVal()+rhs._getVal());
+   return Integer<std::max(n1, n2)>(lhs._getVal()+rhs._getVal());
 }
 
 // Is actually not commutative so this is technically correct
 template<uint8_t n1, uint8_t n2>
 auto operator -( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-	if constexpr ( n1 < n2 )
-		return Integer< n2 >(lhs._getVal()-rhs._getVal());
-	else 
-		return Integer< n1 >(lhs._getVal()-rhs._getVal());
+   return Integer<std::max(n1, n2)>(lhs._getVal()-rhs._getVal());
 }
 
 template<uint8_t n1, uint8_t n2>
 auto operator *( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-	if constexpr ( n1 < n2 )
-		return Integer< n2 >(lhs._getVal()*rhs._getVal());
-	else 
-		return Integer< n1 >(lhs._getVal()*rhs._getVal());
+   return Integer<std::max(n1, n2)>(lhs._getVal()*rhs._getVal());
 }
 
