@@ -17,7 +17,7 @@ private:
 
 class RAM {
 public:
-  using Mirrors = std::unordered_map<int, std::vector<unsigned int>>;
+  using Mirrors = std::unordered_map<unsigned int, std::vector<unsigned int>>;
   // Don't want a default constructor because it means very little
   RAM() = delete;
   RAM(size_t ramSize, unsigned int banks = 1, Mirrors mirrors = {}) noexcept;
@@ -94,7 +94,7 @@ public:
       lines_.reserve(numLines);
     }; // std::move ?
 
-    inline void populate(const int index, bool traced = false) {
+    inline void populate(const unsigned int index, bool traced = false) {
       lines_.emplace_back(index, bankNum_, traced);
     }
     auto operator[](unsigned int index) -> RamLine & { return lines_[index]; }
