@@ -19,10 +19,15 @@ auto test_basic_integer() -> bool {
 
   Integer<17> lhs = 123;
   Integer<18> rhs = 456;
-  auto sum = lhs + rhs;
+  Integer<18> sum = lhs + rhs;
+
+  Integer<18> sum2;
+  // The real test is to check this compiles!
+  sum2 = lhs + rhs;
 
   REQUIRE_EQUAL(sum, 579);
   REQUIRE_EQUAL(sum.bit(0), 1);
+  REQUIRE_EQUAL(sum, sum2);
   return passed;
 }
 

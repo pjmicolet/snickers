@@ -12,7 +12,7 @@ template <uint8_t n> class Integer {
           std::conditional_t<n <= 32, int32_t,
                              std::conditional_t<n <= 64, int64_t, void>>>>;
 
-  constexpr auto createBitmask(uint8_t size) -> stored_type {
+  constexpr auto createBitmask(uint8_t size) const -> stored_type {
     stored_type bitmask;
     if constexpr (n == sizeof(stored_type) * 8)
       bitmask = ~0;
@@ -28,8 +28,7 @@ public:
     value_ = static_cast<stored_type>( val & static_cast<int>(bitmask_) );
   }
 
-  template <uint8_t size>
-  constexpr Integer(const Integer<size> &other)
+  constexpr Integer(const Integer<n> &other)
       : bitmask_(createBitmask(n)), size_(n) {
     value_ = other._getVal();
     value_ &= bitmask_;
@@ -41,13 +40,25 @@ public:
     return value_ & bitmask_;
   }
 
+  // Converting to another integer, if you're larger than it, cut down to whatever
+  // it will expect
+  // if you're converting to a larger number then just use your bitmask.
+  // both bitmasks will generated at compile time.
+  // Need to test this more rigourously
+  template< uint8_t otherSize >
+  [[nodiscard]] constexpr operator Integer<otherSize>() const noexcept {
+    if constexpr ( std::max( n, otherSize ) == n )
+      return value_ & createBitmask( otherSize );
+    else
+      return value_ & bitmask_;
+  }
+
   constexpr auto operator=(const int rval) noexcept -> Integer<n> & {
     value_ = static_cast<stored_type>(rval) & bitmask_;
     return *this;
   }
 
-  template <uint8_t otherSize>
-  constexpr auto operator=(const Integer<otherSize> &rval) noexcept
+  constexpr auto operator=(const Integer<n> &rval) noexcept
       -> Integer<n> & {
     value_ = static_cast<stored_type>(rval) & bitmask_;
     return *this;
