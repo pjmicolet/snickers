@@ -25,7 +25,7 @@ public:
   constexpr Integer() : bitmask_(createBitmask(n)), size_(n) { value_ = 0; }
 
   constexpr Integer(const int val) : bitmask_(createBitmask(n)), size_(n) {
-    value_ = static_cast<stored_type>( val & static_cast<int>(bitmask_) );
+    value_ = static_cast<stored_type>(val & static_cast<int>(bitmask_));
   }
 
   constexpr Integer(const Integer<n> &other)
@@ -40,15 +40,14 @@ public:
     return value_ & bitmask_;
   }
 
-  // Converting to another integer, if you're larger than it, cut down to whatever
-  // it will expect
-  // if you're converting to a larger number then just use your bitmask.
-  // both bitmasks will generated at compile time.
-  // Need to test this more rigourously
-  template< uint8_t otherSize >
+  // Converting to another integer, if you're larger than it, cut down to
+  // whatever it will expect if you're converting to a larger number then just
+  // use your bitmask. both bitmasks will generated at compile time. Need to
+  // test this more rigourously
+  template <uint8_t otherSize>
   [[nodiscard]] constexpr operator Integer<otherSize>() const noexcept {
-    if constexpr ( std::max( n, otherSize ) == n )
-      return value_ & createBitmask( otherSize );
+    if constexpr (std::max(n, otherSize) == n)
+      return value_ & createBitmask(otherSize);
     else
       return value_ & bitmask_;
   }
@@ -58,8 +57,7 @@ public:
     return *this;
   }
 
-  constexpr auto operator=(const Integer<n> &rval) noexcept
-      -> Integer<n> & {
+  constexpr auto operator=(const Integer<n> &rval) noexcept -> Integer<n> & {
     value_ = static_cast<stored_type>(rval) & bitmask_;
     return *this;
   }
@@ -99,10 +97,9 @@ public:
     return (value_ >> index) & 0x1;
   }
 
-  //This is currently the bane of my existence since I don't want to allow users to get the value this way
-  constexpr auto _getVal() const noexcept -> stored_type {
-    return value_;
-  }
+  // This is currently the bane of my existence since I don't want to allow
+  // users to get the value this way
+  constexpr auto _getVal() const noexcept -> stored_type { return value_; }
 
 private:
   stored_type value_;
@@ -111,20 +108,20 @@ private:
 };
 
 // Need to find a way to get access to the value without it being public
-// I want it to be a friend func but I can't get the Barton Nackman trick to work
-template<uint8_t n1, uint8_t n2>
-auto operator +( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-   return Integer<std::max(n1, n2)>(lhs._getVal()+rhs._getVal());
+// I want it to be a friend func but I can't get the Barton Nackman trick to
+// work
+template <uint8_t n1, uint8_t n2>
+auto operator+(const Integer<n1> &lhs, const Integer<n2> &rhs) {
+  return Integer<std::max(n1, n2)>(lhs._getVal() + rhs._getVal());
 }
 
 // Is actually not commutative so this is technically correct
-template<uint8_t n1, uint8_t n2>
-auto operator -( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-   return Integer<std::max(n1, n2)>(lhs._getVal()-rhs._getVal());
+template <uint8_t n1, uint8_t n2>
+auto operator-(const Integer<n1> &lhs, const Integer<n2> &rhs) {
+  return Integer<std::max(n1, n2)>(lhs._getVal() - rhs._getVal());
 }
 
-template<uint8_t n1, uint8_t n2>
-auto operator *( const Integer<n1>& lhs, const Integer<n2>& rhs ) {
-   return Integer<std::max(n1, n2)>(lhs._getVal()*rhs._getVal());
+template <uint8_t n1, uint8_t n2>
+auto operator*(const Integer<n1> &lhs, const Integer<n2> &rhs) {
+  return Integer<std::max(n1, n2)>(lhs._getVal() * rhs._getVal());
 }
-
