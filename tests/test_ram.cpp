@@ -5,7 +5,11 @@
 auto test_basic() -> bool {
   // Only a single bank, 10 lines
   bool passed = true;
-  SNES_RAM ram = SNES_RAM(10);
+
+  BankInfo info(10,0,{});
+  BanksAndSize ram_conf = { {info}, 10 };
+
+  SNES_RAM ram = SNES_RAM(ram_conf);
   ram.store(1, std::byte{120});
 
 	BYTE_EQ(ram.load(1), std::byte{120});
@@ -21,7 +25,9 @@ auto test_basic() -> bool {
 
 auto test_banks() -> bool {
   bool passed = true;
-  SNES_RAM ram = SNES_RAM(200, 2); // That's 2 banks each with 100 lines;
+  
+  BanksAndSize ram_conf = { {BankInfo(100,0,{}), BankInfo(100,1,{})}, 200 };
+  SNES_RAM ram = SNES_RAM(ram_conf); // That's 2 banks each with 100 lines;
                          // We run this in debug mode which will do a check
 #if DEBUG
   try {
@@ -40,9 +46,10 @@ auto test_banks() -> bool {
   BYTE_NEQ(ram.load(0x000019), ram.load(0x010019)); // Just make sure banks are being read correctly
   REQUIRE_EQUAL(ram.addressToBank(0x010000), 1); // better way to do it
 
-  // Awful way to setup mirrors since it's obvious that if 1 has 2 as a mirror
-  // then 2 has 1 as a mirror
-  SNES_RAM ramWithMirror = SNES_RAM(200, 2, {{0, {1}}, {1, {0}}});
+  // Only need to setup the mirror in the first one since it will set it up in the second
+  BanksAndSize ram_conf_with_mirror = {
+      {BankInfo(100, 0, {1}), BankInfo(100, 1, {})}, 200};
+  SNES_RAM ramWithMirror = SNES_RAM(ram_conf_with_mirror);
 
   ramWithMirror.store(0x000001, std::byte{20});
   BYTE_EQ(ramWithMirror.load(0x000001), ramWithMirror.load(0x010001));

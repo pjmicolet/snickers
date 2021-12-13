@@ -1,45 +1,7 @@
 #include "snes_ram.h"
 
-SNES_RAM::SNES_RAM(size_t ramSize, unsigned int banks, Mirrors mirrors) noexcept
-    : RAM(banks, (ramSize / banks)) {
-  ram_.reserve(banks);
-  auto ramLines = ramSize / banks;
-  int8_t bank = 0;
-  for (unsigned int i = 0; i < banks; i++) {
-    if (mirrors.contains(i))
-      ram_.emplace_back(ramLines, i, mirrors[i]);
-    else
-      ram_.emplace_back(ramLines, i);
-  }
-
-  for (auto &ramBank : ram_) {
-    for (unsigned int i = 0; i < ramLines; i++)
-      ramBank.populate(i);
-    bank++;
-  }
-}
-
-SNES_RAM::SNES_RAM(size_t ramSize, std::vector<int> &tracedLines,
-                   unsigned int banks) noexcept
-    : RAM(banks, (ramSize / banks)) {
-  ram_.reserve(banks);
-  auto ramLines = ramSize / banks;
-  size_t tracing = 0;
-  int lines = 0;
-  int8_t bank = 0;
-
-  for (unsigned int i = 0; i < banks; i++)
-    ram_.emplace_back((size_t)ramLines, i);
-
-  for (auto &ramBank : ram_) {
-    for (unsigned int i = 0; i < ramLines; i++, lines++) {
-      bool trace = (int)lines == tracedLines[tracing];
-      if (trace)
-        tracing++;
-      ramBank.populate(i, trace);
-    }
-    bank++;
-  }
+SNES_RAM::SNES_RAM(BanksAndSize& info,std::vector<int>* tracedLines /*= nullptr*/) noexcept
+: RAM(info,tracedLines) {
 }
 
 // Wont check mirrors, but then again we should assume mirrors were setup

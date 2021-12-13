@@ -11,14 +11,7 @@ class SNES_RAM : public RAM {
 public:
   // Don't want a default constructor because it means very little
   SNES_RAM() = delete;
-  SNES_RAM(size_t ramSize, unsigned int banks = 1, Mirrors mirrors = {})
-  noexcept;
-  SNES_RAM(size_t ramSize, std::vector<int> &tracedLines,
-           unsigned int banks = 1)
-  noexcept;
-  SNES_RAM(size_t ramSize, std::vector<int> &tracedLines,
-           unsigned int banks = 1, Mirrors mirrors = {})
-  noexcept;
+  SNES_RAM(BanksAndSize& info,std::vector<int>* tracedLines = nullptr) noexcept;
 
   [[nodiscard]] auto load(const unsigned int index) noexcept(DONT_THROW)
       -> const std::byte & override {
@@ -26,8 +19,7 @@ public:
     return ram_[bankIndex.first][bankIndex.second].load();
   };
   auto store(const unsigned int index,
-                     const std::byte data) noexcept(DONT_THROW)
-      -> void override;
+             const std::byte data) noexcept(DONT_THROW) -> void override;
   auto addressToBank(const unsigned int address) const noexcept(DONT_THROW)
       -> unsigned int override;
 
