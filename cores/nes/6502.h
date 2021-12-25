@@ -19,12 +19,13 @@ struct Registers {
 
 struct CPU_6502 {
   CPU_6502() {
-    std::vector<BankInfo> banks;
-    banks.emplace_back(0x800,  0);
-    banks.emplace_back(0x8,    1);
-    banks.emplace_back(0x18,   2);
-    banks.emplace_back(0x08,   3);
-    banks.emplace_back(0xBFE0, 4);
+    std::vector<BankInfo> banks {
+    {0x800,  0},
+    {0x8,    1},
+    {0x18,   2},
+    {0x08,   3},
+    {0xBFE0, 4}
+    };
 
     //I know there's 0x10000 addresses but technically
     //these are the only ones that are actually used;
