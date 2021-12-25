@@ -5,6 +5,7 @@ extern bool test_ram();
 extern bool test_rom();
 extern bool test_typeutils();
 extern bool test_integer();
+extern bool test_nes_ram();
 
 int main() {
   bool passed = true;
@@ -12,5 +13,6 @@ int main() {
   RUN_TEST(test_rom());
   RUN_TEST(test_typeutils());
   RUN_TEST(test_integer());
+  RUN_TEST(test_nes_ram());
   return passed;
 }

@@ -1,4 +1,7 @@
 #include "../../utils/integer/integer.h"
+#include "nes_ram.h"
+#include <vector>
+#include <memory>
 
 using int8 = Integer<8>;
 using int6 = Integer<6>;
@@ -12,4 +15,22 @@ struct Registers {
   int8 S_;
   int6 P_;
   int16 PC_;
+};
+
+struct CPU_6502 {
+  CPU_6502() {
+    std::vector<BankInfo> banks;
+    banks.emplace_back(0x800,  0);
+    banks.emplace_back(0x8,    1);
+    banks.emplace_back(0x18,   2);
+    banks.emplace_back(0x08,   3);
+    banks.emplace_back(0xBFE0, 4);
+
+    //I know there's 0x10000 addresses but technically
+    //these are the only ones that are actually used;
+    BanksAndSize cfg = {banks, 0xC808};
+    ram_ = std::make_unique<NES_RAM>(cfg);
+  };
+  Registers regs_;
+  std::unique_ptr<NES_RAM> ram_;
 };

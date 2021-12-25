@@ -7,5 +7,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDEBUG -g")
 
 
 include_directories(cores, utils, tests, components)
-file(GLOB SOURCES "tests/*.cpp" "cores/snes/*.cpp" "utils/*.cpp")
+file(GLOB SOURCES "tests/*.cpp" "cores/snes/*.cpp" "utils/*.cpp" "cores/nes/*.cpp")
 add_executable(tests ${SOURCES})
