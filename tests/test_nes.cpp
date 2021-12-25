@@ -12,7 +12,7 @@ auto test_nes_ram_basic() -> bool {
   return passed;
 }
 
-auto test_nes_ram() -> bool {
+auto test_nes() -> bool {
   bool passed = true;
   RUN_TEST(test_nes_ram_basic());
   return passed;
