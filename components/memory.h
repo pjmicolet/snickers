@@ -21,6 +21,7 @@ private:
 ** so it's just better to allow this flexibility here
 */
 struct BankInfo {
+  BankInfo(size_t size, unsigned int bank_id) : size_(size), bank_id_(bank_id), mirror_ids_({}){};
   BankInfo(size_t size, unsigned int bank_id, std::vector<unsigned int> mirror_ids) : size_(size), bank_id_(bank_id), mirror_ids_(mirror_ids){};
   size_t size_;
   unsigned int bank_id_;
