@@ -12,6 +12,7 @@ public:
   // Don't want a default constructor because it means very little
   NES_RAM() = delete;
   NES_RAM(BanksAndSize &info, std::vector<int> *tracedLines = nullptr) noexcept;
+  virtual ~NES_RAM() = default;
 
   [[nodiscard]] auto load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte & override {
     auto bankIndex = calculateBank(index);
