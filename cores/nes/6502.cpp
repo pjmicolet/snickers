@@ -1,15 +1,15 @@
 #include "6502.h"
 #include <cstddef>
 
-inline auto ramToAddress(std::unique_ptr<NES_RAM>&ram, uint16 address) -> uint16_t { return std::to_integer<uint16_t>(ram->load(address)); }
+inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16_t { return std::to_integer<uint16_t>(ram->load(address)); }
 
-inline auto twoByteAddress(std::unique_ptr<NES_RAM>& ram, uint16 PC) -> uint16_t {
+inline auto twoByteAddress(ram_ptr& ram, uint16 PC) -> uint16_t {
   auto lowByte = std::to_integer<uint16_t>(ram->load(PC + 1));
   auto highByte = std::to_integer<uint16_t>(ram->load(PC + 2));
   return (uint16_t)(highByte << 8) | (uint16_t)lowByte;
 }
 
-inline auto resolveIndirectAddress(std::unique_ptr<NES_RAM>& ram, uint16 PC, uint8 offset) -> uint16_t {
+inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16_t {
   auto indirectBytes = twoByteAddress(ram, PC);
   auto indirectAddr = (indirectBytes & 0xFF00) | ((indirectBytes + 1) & 0x00FF);
   auto lowByte = indirectBytes;
@@ -22,8 +22,8 @@ auto CPU_6502::dataFetch() -> uint8_t {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   std::byte data;
   switch (addressingMode) {
-    break; case IMPL: return 0;
-    break; case ACC: return 0;
+    break; case IMPL: return 0;//there's no real fetch here afaik
+    break; case ACC: return 0; //there's no real fetch here afaik
     break; case IMM: data = ram_->load( regs_.PC_ + 1 );
     break; case ZP: data = ram_->load(ramToAddress(ram_, regs_.PC_+1));
     break; case ZPX: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+regs_.X_);

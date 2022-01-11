@@ -11,6 +11,8 @@ using uint8 = Unsigned<8>;
 using uint6 = Unsigned<6>;
 using uint16 = Unsigned<16>;
 
+using ram_ptr = std::unique_ptr<NES_RAM>;
+
 struct Registers {
   Registers() : A_(0), X_(0), Y_(0), S_(0), P_(0), PC_(0) {}
   uint8 A_;
