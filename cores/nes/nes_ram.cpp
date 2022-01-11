@@ -17,7 +17,7 @@ auto NES_RAM::validateRAM(bankIndexPair &pair) const -> void {
 
 auto NES_RAM::calculateBank(unsigned int index) const noexcept(DONT_THROW) -> bankIndexPair {
   if (index <= 0x1FFF) 
-    return {0, index%8};
+    return {0, index%0x800};
   else if (index >= 0x2000 && index <= 0x2007) // PPU
     return {1, index - 0x2000};
   else if (index >= 0x2008 && index <= 0x3FFF) //They're all just mirroring

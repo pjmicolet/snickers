@@ -52,20 +52,20 @@ struct CPU_6502 {
   std::unique_ptr<NES_RAM> ram_;
   auto dataFetch() -> uint8_t;
 
+
 private:
   Registers regs_;
 
+  // clang-format off
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {
-      IMPL, INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, IMPL, ABSY,
-      IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, ABS,  INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL,
-      INDY, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, IMPL, INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,
-      ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, IMPL, INDX, IMPL, INDX, ZP,   ZP,   ZP,
-      ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, IMM,
-      INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, IMPL, ABSY, IMPL,
-      ABSY, ABSX, ABSX, ABSX, ABSX, IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY,
-      INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,
-      ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,
-      IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMPL, INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      ABS,  INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, 
+      IMPL, INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, 
+      IMPL, INDX, IMPL, INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, 
+      IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, 
+      IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, 
+      IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX, 
+      IMM,  INDX, IMM,  INDX, ZP,   ZP,   ZP,   ZP,   IMPL, IMM,  IMPL, IMM,  ABS,  ABS,  ABS,  ABS,  ZP,   INDY, IMPL, INDY, INDX, INDX, INDX, INDX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX
   };
 
   std::array<std::string, 256> instToName = {
@@ -81,12 +81,18 @@ private:
       "dec", "dcp", "iny", "cmp", "dex", "axs", "cpy", "cmp", "dec", "dcp", "bne", "cmp", "kil", "dcp", "nop", "cmp", "dec", "dcp", "cld", "cmp", "nop", "dcp",
       "nop", "cmp", "dec", "dcp", "cpx", "sbc", "nop", "isc", "cpx", "sbc", "inc", "isc", "inx", "sbc", "nop", "sbc", "cpx", "sbc", "inc", "isc", "beq", "sbc",
       "kil", "isc", "nop", "sbc", "inc", "isc", "sed", "sbc", "nop", "isc", "nop", "sbc", "inc", "isc"};
+  // clang-format on
 
 private:
   auto indexFetch() -> uint16_t;
 
-  inline auto resolveAddMode(uint16 PC) {
+  inline auto resolveAddMode(uint16 PC) -> NES_ADDRESS_MODE {
     auto instruction = ram_->load(PC);
     return instToAddressMode[std::to_integer<size_t>(instruction)];
   }
+
+// Just test helpers
+public:
+  auto setPC(uint16 pc ) -> void { regs_.PC_ = pc; }
+  auto incrementPC() -> void { regs_.PC_++; }
 };
