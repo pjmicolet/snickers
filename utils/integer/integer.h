@@ -5,24 +5,26 @@
 #include <type_traits>
 
 template <bool is_signed, uint8_t n> class Number {
-  using stored_type = std::conditional_t < is_signed == true,
-        std::conditional_t<n <= 8, int8_t,
-                           std::conditional_t<n <= 16, int16_t, std::conditional_t<n <= 32, int32_t, std::conditional_t<n <= 64, int64_t, void>>>>,
-        std::conditional_t<n <= 8, uint8_t,
-                           std::conditional_t<n <= 16, uint16_t, std::conditional_t<n <= 32, uint32_t, std::conditional_t<n <= 64, uint64_t, void>>>>>;
+  using stored_type = std::conditional_t<
+      is_signed == true,
+      std::conditional_t<n <= 8, int8_t,
+                         std::conditional_t<n <= 16, int16_t, std::conditional_t<n <= 32, int32_t, std::conditional_t<n <= 64, int64_t, void>>>>,
+      std::conditional_t<n <= 8, uint8_t,
+                         std::conditional_t<n <= 16, uint16_t, std::conditional_t<n <= 32, uint32_t, std::conditional_t<n <= 64, uint64_t, void>>>>>;
 
   constexpr auto createBitmask(uint8_t size) const -> stored_type {
     stored_type bitmask;
     if constexpr (n == sizeof(stored_type) * 8) {
-      if constexpr( is_signed == true )
+      if constexpr (is_signed == true)
         bitmask = ~0;
       else
         bitmask = static_cast<stored_type>(~0);
-    }
-    else
+    } else
       bitmask = (1 << n) - 1;
     return bitmask;
   }
+
+  template <bool is_signed2, uint8_t m> friend class Number;
 
 public:
   constexpr Number() : bitmask_(createBitmask(n)), size_(n) { value_ = 0; }
@@ -30,7 +32,7 @@ public:
   constexpr Number(const int val) : bitmask_(createBitmask(n)), size_(n) { value_ = static_cast<stored_type>(val & static_cast<int>(bitmask_)); }
 
   constexpr Number(const Number<is_signed, n> &other) : bitmask_(createBitmask(n)), size_(n) {
-    value_ = other._getVal();
+    value_ = other.value_;
     value_ &= bitmask_;
   }
 
@@ -91,31 +93,17 @@ public:
 
   constexpr auto bit(int index) const noexcept -> stored_type { return (value_ >> index) & 0x1; }
 
-  // This is currently the bane of my existence since I don't want to allow
-  // users to get the value this way
-  constexpr auto _getVal() const noexcept -> stored_type { return value_; }
+  template <uint8_t n2> auto operator+(const Number<is_signed, n2> &rhs) { return Number<is_signed, std::max(n, n2)>(value_ + rhs.value_); }
+
+  // Is actually not commutative so this is technically correct
+  template <uint8_t n2> auto operator-(const Number<is_signed, n2> &rhs) { return Number<is_signed, std::max(n, n2)>(value_ - rhs.value_); }
+
+  template <uint8_t n2> auto operator*(const Number<is_signed, n2> &rhs) { return Number<is_signed, std::max(n, n2)>(value_ * rhs.value_); }
 
 private:
   stored_type value_;
   const stored_type bitmask_;
   const uint8_t size_;
 };
-
-// Need to find a way to get access to the value without it being public
-// I want it to be a friend func but I can't get the Barton Nackman trick to
-// work
-template <bool is_signed, uint8_t n1, uint8_t n2> auto operator+(const Number<is_signed,n1> &lhs, const Number<is_signed,n2> &rhs) {
-  return Number<is_signed, std::max(n1, n2)>(lhs._getVal() + rhs._getVal());
-}
-
-// Is actually not commutative so this is technically correct
-template <bool is_signed, uint8_t n1, uint8_t n2> auto operator-(const Number<is_signed,n1> &lhs, const Number<is_signed,n2> &rhs) {
-  return Number<is_signed, std::max(n1, n2)>(lhs._getVal() - rhs._getVal());
-}
-
-template <bool is_signed, uint8_t n1, uint8_t n2> auto operator*(const Number<is_signed,n1> &lhs, const Number<is_signed,n2> &rhs) {
-  return Number<is_signed, std::max(n1, n2)>(lhs._getVal() * rhs._getVal());
-}
-
-template<uint8_t x> using Integer = Number<true,x>;
-template<uint8_t x> using Unsigned = Number<false,x>;
+template <uint8_t x> using Integer = Number<true, x>;
+template <uint8_t x> using Unsigned = Number<false, x>;
