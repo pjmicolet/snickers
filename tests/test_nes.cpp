@@ -1,9 +1,17 @@
 #include "../cores/nes/6502.h"
 #include "test_utils.h"
 
+auto write_ram_map(CPU_6502& cpu, std::vector<uint8_t>& bytes) -> void {
+  uint16_t index = 0;
+  for(auto& byte : bytes) {
+    cpu.ram_->store(index,std::byte{byte});
+    index++;
+  }
+}
+
 auto test_nes_ram_basic() -> bool {
   bool passed = true;
-  CPU_6502 cpu{};  
+  CPU_6502 cpu{};
   cpu.ram_->store(0x0, std::byte{12});
   BYTE_EQ(cpu.ram_->load(0x1000), std::byte{12});
   BYTE_NEQ(cpu.ram_->load(0x8), std::byte{12});
@@ -16,12 +24,10 @@ auto test_nes_ram_basic() -> bool {
 auto test_nes_data_fetch() -> bool {
   bool passed = true;
   CPU_6502 cpu{};
-  cpu.ram_->store(0x0, std::byte{0xA9}); // This is an LDA with #0x33 immediate
-  cpu.ram_->store(0x1, std::byte{0x33}); // This is the #0x33
-
-  cpu.ram_->store(0x2, std::byte{0xA5}); // This is an LDA ZP
-  cpu.ram_->store(0x3, std::byte{0x10}); // Going to fetch from $10
-  cpu.ram_->store(0x10, std::byte{0x99}); // Put 0x99 in $10
+  //We have an LDA with #0x33 immediate
+  //LDA ZP that fetches from $10 which has 0x99
+  std::vector<uint8_t> ram_data = {0xA9,0x33,0xA5,0x0A,0x00,0x00,0x00,0x00,0x00,0x00,0x99};
+  write_ram_map(cpu,ram_data);
 
   cpu.setPC(0);
   auto data = cpu.dataFetch();
