@@ -3,20 +3,21 @@
 
 inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16_t { return std::to_integer<uint16_t>(ram->load(address)); }
 
-inline auto twoByteAddress(ram_ptr& ram, uint16 PC) -> uint16_t {
-  auto lowByte = std::to_integer<uint16_t>(ram->load(PC + 1));
-  auto highByte = std::to_integer<uint16_t>(ram->load(PC + 2));
+inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16_t offset = 1) -> uint16_t {
+  auto lowByte = std::to_integer<uint16_t>(ram->load(PC + offset));
+  auto highByte = std::to_integer<uint16_t>(ram->load(PC + offset + 1));
   return (uint16_t)(highByte << 8) | (uint16_t)lowByte;
 }
 
 inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16_t {
-  auto pcAddr = ramToAddress(ram, PC+1);
-  return (uint16_t)((pcAddr+X+1) << 8 ) | ((pcAddr+X) & 0xFF );
+  auto baseAddr = ramToAddress(ram, PC+1) + X;
+  return twoByteAddress(ram,baseAddr,0);
 }
 
 inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16_t {
-  auto pcAddr = ramToAddress(ram, PC+1);
-  return ( (uint16_t)((pcAddr+1) << 8 ) | ((pcAddr+1) & 0xFF ) + Y );
+  auto baseAddr = ramToAddress(ram, PC+1);
+  auto pcAddr = twoByteAddress(ram, baseAddr, 0);
+  return pcAddr + Y;
 }
 
 inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16_t {
@@ -45,7 +46,7 @@ auto CPU_6502::dataFetch() -> uint8_t {
     break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+regs_.Y_);
     break; case INDX: data = ram_->load(indirectX(ram_, regs_.PC_,regs_.X_));
     break; case INDY: data = ram_->load(indirectY(ram_, regs_.PC_,regs_.Y_));
-    default: throw( "This is wrong!" );
+    break; default: throw( "This is wrong!" );
   };
   return std::to_integer<uint8_t>(data);
 }
