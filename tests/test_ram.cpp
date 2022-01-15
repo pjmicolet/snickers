@@ -12,7 +12,7 @@ auto test_basic() -> bool {
   SNES_RAM ram = SNES_RAM(ram_conf);
   ram.store(1, std::byte{120});
 
-	BYTE_EQ(ram.load(1), std::byte{120});
+  BYTE_EQ(ram.load(1), std::byte{120});
 
   ram.store(2, ram.load(1));
 
@@ -42,7 +42,7 @@ auto test_banks() -> bool {
   ram.store(0x010032, std::byte{10}); // Bank 1 line 50
   ram.store(0x010019, std::byte{11}); // Bank 1 line 50
 
-	BYTE_EQ(ram.load(0x000019), ram.load(0x010032));
+  BYTE_EQ(ram.load(0x000019), ram.load(0x010032));
   BYTE_NEQ(ram.load(0x000019), ram.load(0x010019)); // Just make sure banks are being read correctly
   REQUIRE_EQUAL(ram.addressToBank(0x010000), 1); // better way to do it
 
@@ -53,7 +53,7 @@ auto test_banks() -> bool {
 
   ramWithMirror.store(0x000001, std::byte{20});
   BYTE_EQ(ramWithMirror.load(0x000001), ramWithMirror.load(0x010001));
-	BYTE_EQ(ramWithMirror.load(0x010001), std::byte{20});
+  BYTE_EQ(ramWithMirror.load(0x010001), std::byte{20});
 
   return passed;
 }
