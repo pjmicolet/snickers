@@ -1,36 +1,36 @@
 #include "6502.h"
 #include <cstddef>
 
-inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16_t { return std::to_integer<uint16_t>(ram->load(address)); }
+inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16 { return std::to_integer<uint16_t>(ram->load(address)); }
 
-inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16_t offset = 1) -> uint16_t {
+inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1) -> uint16 {
   auto lowByte = std::to_integer<uint16_t>(ram->load(PC + offset));
   auto highByte = std::to_integer<uint16_t>(ram->load(PC + offset + 1));
-  return (uint16_t)(highByte << 8) | (uint16_t)lowByte;
+  return (uint16)(highByte << 8) | (uint16)lowByte;
 }
 
-inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16_t {
+inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16 {
   auto baseAddr = ramToAddress(ram, PC+1) + X;
   return twoByteAddress(ram,baseAddr,0);
 }
 
-inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16_t {
+inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16 {
   auto baseAddr = ramToAddress(ram, PC+1);
   auto pcAddr = twoByteAddress(ram, baseAddr, 0);
   return pcAddr + Y;
 }
 
-inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16_t {
+inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16 {
   auto indirectBytes = twoByteAddress(ram, PC);
   auto indirectAddr = (indirectBytes & 0xFF00) | ((indirectBytes + 1) & 0x00FF);
 
   auto lowByte = indirectBytes;
   auto highByte = indirectAddr;
 
-  return (uint16_t)(highByte << 8) | (uint16_t)lowByte;
+  return (uint16)(highByte << 8) | (uint16)lowByte;
 }
 
-auto CPU_6502::dataFetch() -> uint8_t {
+auto CPU_6502::dataFetch() -> uint8 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   std::byte data;
   switch (addressingMode) {
@@ -40,7 +40,7 @@ auto CPU_6502::dataFetch() -> uint8_t {
     break; case ZP: data = ram_->load(ramToAddress(ram_, regs_.PC_+1));
     break; case ZPX: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+regs_.X_);
     break; case ZPY: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+regs_.Y_);
-    break; case REL: data = ram_->load(ramToAddress(ram_, regs_.PC_+1));
+    break; case REL: data = ram_->load(regs_.PC_+1);
     break; case ABS: data = ram_->load(twoByteAddress(ram_, regs_.PC_));
     break; case ABSX: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+regs_.X_);
     break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+regs_.Y_);
@@ -51,7 +51,7 @@ auto CPU_6502::dataFetch() -> uint8_t {
   return std::to_integer<uint8_t>(data);
 }
 
-auto CPU_6502::indexFetch() -> uint16_t {
+auto CPU_6502::indexFetch() -> uint16 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   switch (addressingMode) {
     break; case IND: return resolveIndirectAddress(ram_, regs_.PC_, 0);
