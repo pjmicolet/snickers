@@ -11,7 +11,7 @@ inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1) -> uint16
 }
 
 inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16 {
-  auto baseAddr = ramToAddress(ram, PC+1) + X;
+  uint16 baseAddr = ramToAddress(ram, PC+1) + X;
   return twoByteAddress(ram,baseAddr,0);
 }
 
@@ -23,7 +23,7 @@ inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16 {
 
 inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16 {
   auto indirectBytes = twoByteAddress(ram, PC);
-  auto indirectAddr = (indirectBytes & 0xFF00) | ((indirectBytes + 1) & 0x00FF);
+  uint16 indirectAddr = (indirectBytes & 0xFF00) | ((indirectBytes + 1) & 0x00FF);
 
   auto lowByte = indirectBytes;
   auto highByte = indirectAddr;
