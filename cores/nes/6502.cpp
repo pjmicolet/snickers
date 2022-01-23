@@ -1,6 +1,7 @@
 #include "6502.h"
 #include <cstddef>
 
+// These functions are just to handle the different ways of fetching data for 8 and 16 bit data
 inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16 { return std::to_integer<uint16_t>(ram->load(address)); }
 
 inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1) -> uint16 {
@@ -30,6 +31,11 @@ inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uin
   return (uint16)(highByte << 8) | (uint16)lowByte;
 }
 
+
+// Data fetch takes the PC to figure out what addressing mode the current instruction
+// uses and then returns the data that the instruction requires.
+// Note that instructions that use indirect address aren't here as that just returns
+// an address and not data.
 auto CPU_6502::dataFetch() -> uint8 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   std::byte data;
@@ -51,6 +57,8 @@ auto CPU_6502::dataFetch() -> uint8 {
   return std::to_integer<uint8_t>(data);
 }
 
+// Since inddirect addressing returns an address, instructions that use this mode will call indexFetch() rather
+// than dataFetch()
 auto CPU_6502::indexFetch() -> uint16 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   switch (addressingMode) {
