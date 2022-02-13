@@ -27,6 +27,20 @@ constexpr auto match(const std::string_view pattern, const std::string_view test
   // formalise some basic pattern match language, maybe something like
   // @name $(@number),Y will be true for LDA $(123),Y
   const auto splitPattern = strSplit<size>(pattern);
-  const auto splitTest = strSplit<size>(testString);
+  auto splitTest = strSplit<size>(testString);
+  for(size_t i =0;i < (size_t)size; i++){
+    //We have a label
+    if(splitPattern[i] == "@name")
+    {
+      if(splitTest[i].find_first_of("123456789") != std::string_view::npos){
+        return false;
+      }
+      // Not sure this will ever genuinely be needed
+    }
+    if(splitPattern[i] == "@digits") {
+      if(splitTest[i].find_first_of("abcdefghijklmnopqrstuvwxyzABCDEFGHHIJKLMNOPQRSTUVWXYZ") != std::string_view::npos )
+          return false;
+    }
+  }
   return true;
 }
