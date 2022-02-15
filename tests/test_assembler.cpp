@@ -11,9 +11,13 @@ auto test_asm_utils() -> bool {
   static_assert(result[2] == "are");
   static_assert(result[3] == "you");
   static_assert(result[4] == "today");
-
-  static_assert(true == match<4>("@name @name @name @name", "me myself and i"));
-  static_assert(false == match<4>("@digits @name @name @name", "123e myself and i"));
+  static_assert(true == match("@name", "me"));
+  static_assert(true == match("@digits", "123"));
+  static_assert(true == match("@name @name @name @name", "me myself and i"));
+  static_assert(false == match("@digits @name @name @name", "123e myself and i"));
+  static_assert(true == match("@digits @name @name @name", "123 myself and i"));
+  static_assert(true == match("$(@digits) @name @name @name", "$(123) myself and i"));
+  static_assert(true == match("@name #$@digits", "LDA #$32"));
   return passed;
 }
 
