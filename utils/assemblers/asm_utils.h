@@ -2,6 +2,7 @@
 #include <array>
 #include <string>
 #include <iostream>
+#include <vector>
 #include <string_view>
 
 // Taken from cppstories.com 2021, some interesting blogpost on string and vector becoming constexpr
@@ -23,6 +24,28 @@ constexpr auto strSplit(const std::string_view strv, std::string_view delim = " 
   return output;
 }
 
+//Non constexpr form :)
+auto strSplit(const std::string_view strv, std::string_view delim = " ") -> std::vector<std::string_view> {
+  std::vector<std::string_view> output;
+  size_t first = 0;
+  while(first < strv.size()) {
+    const auto second = strv.find_first_of(delim, first);
+    if(first == 0 && second == std::string_view::npos)
+      output.push_back(strv);
+    else if ( first != second ) {
+      output.push_back(strv.substr(first,second-first));
+    }
+    if (second == std::string_view::npos)
+      break;
+    first = second + 1;
+  }
+  return output;
+}
+
+constexpr auto isHex(const char& c) -> bool {
+  return (c >=48 && c <= 57) || (c=='A'||c=='B'||c=='C'||c=='D'||c=='E'||c=='F') || (c=='a'||c=='b'||c=='c'||c=='d'||c=='e'||c=='f');
+}
+
 constexpr auto match(const std::string_view pattern, const std::string_view testString) -> bool {
   // formalise some basic pattern match language, maybe something like
   // @name $(@number),Y will be true for LDA $(123),Y
@@ -32,6 +55,8 @@ constexpr auto match(const std::string_view pattern, const std::string_view test
   size_t i = 0;
 
   while(pattern_index < pattern.size() || i < testString.size()) {
+    if(i >= testString.size() && pattern_index < pattern.size())
+      return false;
     if(pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'n')
     {
       pattern_index = pattern_index+5;
@@ -54,14 +79,51 @@ constexpr auto match(const std::string_view pattern, const std::string_view test
         i++;
       }
       continue;
-
+    }
+    //This is how I can help parse between say #01 and #01234
+    //You can just do
+    //#@byte
+    //#@byte@byte
+    else if(pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'b') {
+      pattern_index = pattern_index+5;
+      bool tilEnd = ( pattern_index >= pattern.size() );
+      uint8_t bytes = 2;
+      while(bytes > 0 && ((tilEnd && i < testString.size() ) || (testString[i] != pattern[pattern_index]))){
+        if(!isHex(testString[i]))
+            return false;
+        i++;
+        bytes--;
+      }
+      continue;
     }
     else if(pattern[pattern_index] != testString[i])
       return false;
     i++;
     pattern_index++;
-
   }
-
   return true;
+}
+
+//This is dirty but it will clear up the string and then create the int
+auto stringToInt(const std::string_view pattern) -> int {
+  bool foundYet = false;
+  int res = 0;
+  std::string hex = "";
+  for(auto& c : pattern) {
+    if(!foundYet){
+      if(isHex(c)) {
+        foundYet = true;
+        hex += c;
+      }
+    } else{
+      if(isHex(c)) {
+        hex += c;
+      }
+      else{break;}
+    }
+  }
+  if(foundYet) {
+    res = std::stoi(hex,nullptr,16);
+  }
+  return res;
 }

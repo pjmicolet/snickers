@@ -1,28 +1,38 @@
 #pragma once
 #include "../../utils/assemblers/asm_utils.h"
+#include "../../utils/type_utils.h"
 #include <utility>
+#include <vector>
+#include <charconv>
 
 #define MATCH_INST(instname,num) \
   if (match(instname,inst)) \
     return {start,start+(num-1)};\
   start+= num;
 
-#define IMPL(hex) std::make_pair(implicit,hex),
-#define ACC(hex) std::make_pair(accumulator,hex),
-#define IMM(hex) std::make_pair(immediate,hex),
-#define ZP(hex) std::make_pair(zeroPage,hex),
-#define ZPX(hex) std::make_pair(zeroPageX,hex),
-#define ZPY(hex) std::make_pair(zeroPageY,hex),
-#define REL(hex) std::make_pair(relative,hex),
-#define ABS(hex) std::make_pair(absolute,hex),
-#define ABSX(hex) std::make_pair(absoluteX,hex),
-#define ABSY(hex) std::make_pair(absoluteY,hex),
-#define IND(hex) std::make_pair(indirect,hex),
-#define INDX(hex) std::make_pair(indirectX,hex),
-#define INDY(hex) std::make_pair(indirectY,hex),
+#define IMPL(hex) OpType(implicit,hex,0),
+#define ACC(hex) OpType(accumulator,hex,1),
+#define IMM(hex) OpType(immediate,hex,2),
+#define ZP(hex) OpType(zeroPage,hex,3),
+#define ZPX(hex) OpType(zeroPageX,hex,4),
+#define ZPY(hex) OpType(zeroPageY,hex,5),
+#define REL(hex) OpType(relative,hex,6),
+#define ABS(hex) OpType(absolute,hex,7),
+#define ABSX(hex) OpType(absoluteX,hex,8),
+#define ABSY(hex) OpType(absoluteY,hex,9),
+#define IND(hex) OpType(indirect,hex,10),
+#define INDX(hex) OpType(indirectX,hex,11),
+#define INDY(hex) OpType(indirectY,hex,12),
 
 using opcode = std::pair<const std::string_view, uint8_t>;
 using offsets = std::array<const size_t,2>;
+
+struct OpType {
+  constexpr OpType(const std::string_view& f, uint8_t opcode, uint8_t opType) : filter_(f), opcode_(opcode), opType_(opType) {};
+  const std::string_view& filter_;
+  const uint8_t opcode_;
+  const uint8_t opType_;
+};
 
 struct OpTable {
   constexpr OpTable() {}
@@ -30,26 +40,57 @@ struct OpTable {
     const auto instTypeSplit = strSplit<2>(inst);
     const auto delim = getOffsets(instTypeSplit[0]);
     for(size_t i = delim[0]; i <= delim[1]; i++) {
-      if (match(opcodes[i].first,instTypeSplit[1]))
-        return opcodes[i].second;
+      if (match(opcodes[i].filter_,instTypeSplit[1]))
+        return opcodes[i].opcode_;
     }
     return 0;
   }
+
+  auto parseInst(const std::string_view& inst, std::vector<std::byte>& assembly) const -> void {
+    const auto instTypeSplit = strSplit<2>(inst);
+    const auto delim = getOffsets(instTypeSplit[0]);
+    for(size_t i = delim[0]; i <= delim[1]; i++) {
+      if (match(opcodes[i].filter_,instTypeSplit[1])) {
+        assembly.push_back(std::byte{opcodes[i].opcode_});
+        returnData(instTypeSplit[1],opcodes[i].opType_,assembly);
+        break;
+      }
+    }
+    return;
+  }
+
+  auto returnData(const std::string_view& inst, const uint8_t optype, std::vector<std::byte>& assembly) const -> void {
+    switch(optype) {
+        break; case 0: return;
+        break; case 1: return;
+        break; case 2: case 3: case 4: case 5: case 6: case 11: case 12: {
+          assembly.push_back(std::byte(stringToInt(inst)));
+        }
+        break; case 7: case 8: case 9: case 10: {
+          auto data = integerToByteVTrim(stringToInt(inst));
+          for(auto& datum: data)
+            assembly.push_back(datum);
+        }
+        break;
+      }
+    return;
+  }
+
   private:
     static inline constexpr std::string_view implicit = "";
     static inline constexpr std::string_view accumulator = "A";
-    static inline constexpr std::string_view immediate = "#@digits";
-    static inline constexpr std::string_view zeroPage = "$@digits";
-    static inline constexpr std::string_view zeroPageX = "$@digits,X";
-    static inline constexpr std::string_view zeroPageY = "$@digits,Y";
-    static inline constexpr std::string_view relative = "@name";
-    static inline constexpr std::string_view absolute = "$@digits";
-    static inline constexpr std::string_view absoluteX = "$@digits,X";
-    static inline constexpr std::string_view absoluteY = "$@digits,Y";
-    static inline constexpr std::string_view indirect = "($@digits)";
-    static inline constexpr std::string_view indirectX = "($@digits,X)";
-    static inline constexpr std::string_view indirectY = "($@digits),Y";
-    const std::array<opcode, 151> opcodes = {
+    static inline constexpr std::string_view immediate = "#@byte";
+    static inline constexpr std::string_view zeroPage = "$@byte";
+    static inline constexpr std::string_view zeroPageX = "$@byte,X";
+    static inline constexpr std::string_view zeroPageY = "$@byte,Y";
+    static inline constexpr std::string_view relative = "@byte";
+    static inline constexpr std::string_view absolute = "$@byte@byte";
+    static inline constexpr std::string_view absoluteX = "$@byte@byte,X";
+    static inline constexpr std::string_view absoluteY = "$@byte@byte,Y";
+    static inline constexpr std::string_view indirect = "($@byte@byte)";
+    static inline constexpr std::string_view indirectX = "($@byte,X)";
+    static inline constexpr std::string_view indirectY = "($@byte),Y";
+    const std::array<OpType, 151> opcodes = {
       //ADC
       IMM(0x69) ZP(0x65) ZPX(0x75) ABS(0x6D) ABSX(0x7D) ABSY(0x79) INDX(0x61) INDY(0x71)
       //AND
@@ -148,10 +189,6 @@ struct OpTable {
     }
 };
 
-constexpr auto getTable() -> OpTable{
-  constexpr OpTable a{};
-  return a;
-}
 struct NesAssembler {
   public:
   constexpr NesAssembler() {};
@@ -160,6 +197,15 @@ struct NesAssembler {
   }
   constexpr auto getOpcode(const std::string_view inst) -> uint8_t {
     return table_.getOpcode(inst);
+  }
+  // Give up on the constexpr version for now it's just too hard to wrap my head around
+  auto assemble(const std::string_view insts) -> std::vector<std::byte> {
+    std::vector<std::byte> assembly;
+    const auto splitInsts = strSplit(insts,"\n");
+    for(auto& inst : splitInsts) {
+      table_.parseInst(inst,assembly);
+    }
+    return assembly;
   }
   private:
   //Store some table with the opcodes and their pattern matches, then we just scan the right
