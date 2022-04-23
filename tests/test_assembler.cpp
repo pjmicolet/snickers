@@ -1,4 +1,5 @@
 #include "../utils/assemblers/asm_utils.h"
+#include "../assemblers/nes/nes.h"
 #include <iostream>
 #include "test_utils.h"
 
@@ -21,8 +22,17 @@ auto test_asm_utils() -> bool {
   return passed;
 }
 
+auto test_nes_asm() -> bool {
+  bool passed = true;
+  NesAssembler a{};
+  static_assert(7 == a.getOffsets("ADC")[1] && 8 == a.getOffsets("AND")[0] && 150 == a.getOffsets("TYA")[0]);
+  static_assert(0x65 == a.getOpcode("ADC $12"));
+  return passed;
+}
+
 auto test_asm() -> bool {
   bool passed = true;
   RUN_TEST(test_asm_utils());
+  RUN_TEST(test_nes_asm());
   return passed;
 }
