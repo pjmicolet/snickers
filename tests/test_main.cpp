@@ -6,6 +6,7 @@ extern bool test_rom();
 extern bool test_typeutils();
 extern bool test_integer();
 extern bool test_nes();
+extern bool test_asm();
 
 int main() {
   bool passed = true;
@@ -14,5 +15,6 @@ int main() {
   RUN_TEST(test_typeutils());
   RUN_TEST(test_integer());
   RUN_TEST(test_nes());
+  RUN_TEST(test_asm());
   return passed;
 }

@@ -1,3 +1,4 @@
+#pragma once
 #include "../../components/memory.h"
 #include "../base.h"
 #include <cstddef>
