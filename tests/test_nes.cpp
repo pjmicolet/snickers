@@ -1,10 +1,20 @@
 #include "../cores/nes/6502.h"
+#include "../utils/assemblers/asm_utils.h"
+#include "../assemblers/nes/nes.h"
 #include "test_utils.h"
 
 auto write_ram_map(CPU_6502& cpu, std::vector<uint8_t>& bytes) -> void {
   uint16_t index = 0;
   for(auto& byte : bytes) {
     cpu.ram_->store(index,std::byte{byte});
+    index++;
+  }
+}
+
+auto write_ram_map(CPU_6502& cpu, std::vector<std::byte>& bytes) -> void {
+  uint16_t index = 0;
+  for(auto& byte: bytes) {
+    cpu.ram_->store(index,byte);
     index++;
   }
 }
@@ -83,9 +93,23 @@ auto test_nes_data_fetch() -> bool {
   return passed;
 }
 
+auto test_nes_execute() -> bool {
+  bool passed = true;
+  CPU_6502 cpu{};
+  NesAssembler nesAs{};
+  auto ram_data = nesAs.assemble("ADC #20");
+  std::cout << std::to_integer<int>(ram_data[0]) << " " << std::to_integer<int>(ram_data[1]) << "\n";
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.execute();
+  cpu.printDebug();
+  return passed;
+}
+
 auto test_nes() -> bool {
   bool passed = true;
   RUN_TEST(test_nes_ram_basic());
   RUN_TEST(test_nes_data_fetch());
+  RUN_TEST(test_nes_execute());
   return passed;
 }

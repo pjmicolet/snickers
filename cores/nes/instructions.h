@@ -1,13 +1,26 @@
+#pragma once
 #include "../../utils/integer/integer.h"
 #include "6502.h"
 #include <cstdlib>
 #include <iostream>
 
+struct CPU_6502;
+struct Registers;
+
+using int8 = Integer<8>;
+using int6 = Integer<6>;
+using int16 = Integer<16>;
+
+using uint8 = Unsigned<8>;
+using uint6 = Unsigned<6>;
+using uint16 = Unsigned<16>;
+
 #define INST_CLASS(inst_name)                                                  \
   class inst_name : public Instruction {                                       \
   public:                                                                      \
-    inst_name(bool debug, Registers &regs, int64_t op)                         \
-        : Instruction(debug, regs, op, #inst_name){};                          \
+    inst_name(bool debug, CPU_6502& cpu)                                       \
+        : Instruction(debug, cpu, #inst_name){};                               \
+    virtual ~inst_name() = default;                                            \
                                                                                \
   private:                                                                     \
     void execute() override;                                                   \
@@ -20,34 +33,38 @@
 */
 class Instruction {
 public:
-  Instruction(bool debug, Registers &regs, int64_t op, const std::string string)
-      : debug_(debug), regs_(regs), opcode_(op), name_(string){};
+  Instruction(bool debug, CPU_6502& cpu, const std::string string);
+  virtual ~Instruction() = default;
   // Each instruction should behave like this, execute then print out whatever
   // custom debugging is asked
 public:
-  void runInstruction() {
-    execute();
-    if (debug_)
-      debug();
-  };
+  void runInstruction();
 
 private:
   virtual void execute() {
     std::cerr << "Instruction " << name_ << " has no execute implemented.\n";
     std::exit(EXIT_FAILURE);
   };
-  void debug() { std::cout << name_ << " " << opcode_ << "\n"; };
+  void debug() { std::cout << name_ << " " << "\n"; };
 
 protected:
   const bool debug_;
-  Registers &regs_;
-  int64_t opcode_;
+  CPU_6502& cpu_;
+  Registers& regs_;
   const std::string name_;
+  uint8 data_;
+private:
+  friend struct CPU_6502;
 };
 
 INST_CLASS(Adc)
+INST_CLASS(Ahx)
+INST_CLASS(Alr)
+INST_CLASS(Anc)
 INST_CLASS(And)
+INST_CLASS(Arr)
 INST_CLASS(Asl)
+INST_CLASS(Axs)
 INST_CLASS(Bcc)
 INST_CLASS(Bcs)
 INST_CLASS(Beq)
@@ -65,6 +82,7 @@ INST_CLASS(Clv)
 INST_CLASS(Cmp)
 INST_CLASS(Cpx)
 INST_CLASS(Cpy)
+INST_CLASS(Dcp)
 INST_CLASS(Dec)
 INST_CLASS(Dex)
 INST_CLASS(Dey)
@@ -72,8 +90,12 @@ INST_CLASS(Eor)
 INST_CLASS(Inc)
 INST_CLASS(Inx)
 INST_CLASS(Iny)
+INST_CLASS(Isc)
 INST_CLASS(Jmp)
 INST_CLASS(Jsr)
+INST_CLASS(Kil)
+INST_CLASS(Las)
+INST_CLASS(Lax)
 INST_CLASS(Lda)
 INST_CLASS(Ldx)
 INST_CLASS(Ldy)
@@ -84,20 +106,29 @@ INST_CLASS(Pha)
 INST_CLASS(Php)
 INST_CLASS(Pla)
 INST_CLASS(Plp)
+INST_CLASS(Rla)
+INST_CLASS(Rra)
 INST_CLASS(Rol)
 INST_CLASS(Ror)
 INST_CLASS(Rti)
 INST_CLASS(Rts)
 INST_CLASS(Sbc)
+INST_CLASS(Sax)
 INST_CLASS(Sec)
 INST_CLASS(Sed)
 INST_CLASS(Sei)
+INST_CLASS(Shx)
+INST_CLASS(Shy)
+INST_CLASS(Slo)
+INST_CLASS(Sre)
 INST_CLASS(Sta)
 INST_CLASS(Stx)
 INST_CLASS(Sty)
+INST_CLASS(Tas)
 INST_CLASS(Tax)
 INST_CLASS(Tay)
 INST_CLASS(Tsx)
 INST_CLASS(Txa)
 INST_CLASS(Txs)
 INST_CLASS(Tya)
+INST_CLASS(Xaa)

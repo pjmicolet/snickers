@@ -1,7 +1,10 @@
+#pragma once
 #include "../../utils/integer/integer.h"
 #include "nes_ram.h"
+#include "instructions.h"
 #include <memory>
 #include <vector>
+#include <iostream>
 
 using int8 = Integer<8>;
 using int6 = Integer<6>;
@@ -21,6 +24,10 @@ struct Registers {
   uint8 S_;
   uint6 P_;
   uint16 PC_;
+  friend std::ostream& operator<<(std::ostream& os, const Registers& regs) {
+    os << "["<<regs.PC_ << "]: A[" << regs.A_ << "] X[" << regs.X_ << "] Y[" << regs.Y_ << "] S[" << regs.S_ << "] P[" << regs.P_<<"]\n";
+    return os;
+  }
 };
 
 enum NES_ADDRESS_MODE {
@@ -39,21 +46,17 @@ enum NES_ADDRESS_MODE {
   INDY, // indirect indexed
 };
 
-struct CPU_6502 {
-  CPU_6502() {
-    std::vector<BankInfo> banks{{0x800, 0}, {0x8, 1}, {0x18, 2}, {0x08, 3}, {0xBFE0, 4}};
+class Instruction;
 
-    // I know there's 0x10000 addresses but technically
-    // these are the only ones that are actually used;
-    BanksAndSize cfg = {banks, 0xC808};
-    ram_ = std::make_unique<NES_RAM>(cfg);
-  };
+struct CPU_6502 {
+  CPU_6502();
 
   std::unique_ptr<NES_RAM> ram_;
   auto dataFetch() -> uint8;
+  auto execute() -> void;
+  auto printDebug() -> void;
 
-
-private:
+protected:
   Registers regs_;
 
   // clang-format off
@@ -90,6 +93,12 @@ private:
     auto instruction = ram_->load(PC);
     return instToAddressMode[std::to_integer<size_t>(instruction)];
   }
+ inline auto getInstructionOp() -> size_t {
+   return std::to_integer<size_t>(ram_->load(regs_.PC_));
+ }
+
+  friend class Instruction;
+  std::vector<std::unique_ptr<Instruction>> insts_;
 
 // Just test helpers
 public:

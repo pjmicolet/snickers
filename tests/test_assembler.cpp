@@ -19,6 +19,11 @@ auto test_asm_utils() -> bool {
   static_assert(true == match("@digits @name @name @name", "123 myself and i"));
   static_assert(true == match("$(@digits) @name @name @name", "$(123) myself and i"));
   static_assert(true == match("@name #$@digits", "LDA #$32"));
+  static_assert(true == match("@name #$@byte", "LDA #$32"));
+  static_assert(false == match("@name #$@byte@byte", "LDA #$32"));
+  static_assert(true == match("@name #$@byte@byte", "LDA #$32AF"));
+  static_assert(false == match("@name #$@byte", "LDA #$32AF"));
+  static_assert(true == match("@name #$@byte@digits", "LDA #$32324234123120"));
   return passed;
 }
 
@@ -27,6 +32,12 @@ auto test_nes_asm() -> bool {
   NesAssembler a{};
   static_assert(7 == a.getOffsets("ADC")[1] && 8 == a.getOffsets("AND")[0] && 150 == a.getOffsets("TYA")[0]);
   static_assert(0x65 == a.getOpcode("ADC $12"));
+  auto vec = a.assemble("ADC $12\nADC $1234");
+  BYTE_EQ(vec[0], std::byte(0x65));
+  BYTE_EQ(vec[1], std::byte(0x12));
+  BYTE_EQ(vec[2], std::byte(0x6D));
+  BYTE_EQ(vec[3], std::byte(0x12));
+  BYTE_EQ(vec[4], std::byte(0x34));
   return passed;
 }
 
