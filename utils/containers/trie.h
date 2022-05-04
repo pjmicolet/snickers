@@ -22,6 +22,11 @@ class SlowTrie {
     data_[s[0]]->insert(s.substr(1,s.size()-1));
   }
 
+  auto insert(std::vector<std::string>& ss) -> void {
+    for(auto& s:ss)
+      insert(s);
+  }
+
   auto getMatches(std::string_view s) -> std::vector<std::string> {
     std::vector<std::string> res;
     std::string tmp = "";
@@ -40,14 +45,14 @@ class SlowTrie {
   };
 
   auto getResultsInternal(std::string_view s, std::vector<std::string>& res, std::string tmp) -> void {
+    if(data_.size() == 0 )
+      res.push_back(tmp);
     if(data_.find(s[0]) != data_.end()) {
       tmp += s[0];
       if(s.size() == 1) {
         data_[s[0]]->goThroughAll(res,tmp);
       } else
         data_[s[0]]->getResultsInternal(s.substr(1,s.size()-1),res,tmp);
-    } else {
-      res.push_back(tmp);
     }
   }
 

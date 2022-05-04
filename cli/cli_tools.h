@@ -8,16 +8,8 @@
 #include <memory>
 #include <unordered_map>
 #include <functional>
-
-struct suggestion {
-    suggestion() : strings({}),num(0),maxnum(0) {};
-    suggestion(std::vector<std::string> strings ) : strings(strings), num(strings.size()){maxnum = 0; for(auto& bla : strings) maxnum = std::max(maxnum,(int)bla.size());};
-    std::vector<std::string> strings;
-    int num;
-    int maxnum;
-};
-
-using suggestions = std::unordered_map<char, suggestion>;
+#include <algorithm>
+#include "../utils/containers/trie.h"
 
 template<typename T>
 using windowPtr = std::unique_ptr<T,std::function<void(T*)>>;
@@ -34,7 +26,10 @@ struct SnickersWindow {
 
   virtual auto clear(bool moveToStart) -> void = 0;
   virtual auto renderChar(char c) -> void = 0;
+  virtual auto renderString(std::string_view s) -> void = 0;
   virtual auto moveToStart() -> void {
+    SlowTrie S = SlowTrie();
+    S.insert("aaa");
     wmove(wind_.get(),yOffset_,xOffset_);
   }
   virtual auto rebox() -> void {
@@ -122,6 +117,7 @@ struct TextWindow : public SnickersWindow {
   auto getString() -> std::string {
     return textData_;
   }
+  auto renderString(std::string_view s) -> void {}
 
   auto renderNewString(std::string s) -> void {
     mvwprintw(wind_.get(),yOffset_+internal_count_,xOffset_,"%s",s.c_str());
@@ -136,23 +132,29 @@ struct TextWindow : public SnickersWindow {
 };
 
 struct SuggestionWindow : public SnickersWindow {
-  SuggestionWindow(int y, int x, int numRows, int numCols, suggestions sg) : SnickersWindow(y,x,numRows,numCols), sgs_(sg) {};
-  SuggestionWindow(int y, int x, int numRows, int numCols, int yOffset, int xOffset, suggestions sg) : SnickersWindow(y,x,numRows,numCols,yOffset,xOffset), sgs_(sg) {
+  SuggestionWindow(int y, int x, int numRows, int numCols, std::vector<std::string> suggestions) : SnickersWindow(y,x,numRows,numCols) {
+    trie_.insert(suggestions);
+  };
+  SuggestionWindow(int y, int x, int numRows, int numCols, int yOffset, int xOffset, std::vector<std::string> suggestions) : SnickersWindow(y,x,numRows,numCols,yOffset,xOffset) {
+    trie_.insert(suggestions);
   };
 
-  auto renderChar(char c) -> void {
-    if(sgs_.find(c) == sgs_.end()) {
+  auto renderChar(char c) -> void {}
+
+  auto renderString(std::string_view s) -> void {
+    auto results = trie_.getMatches(s);
+    if(results.size() == 0)
       return;
-    }
     wbkgd(wind_.get(),COLOR_PAIR(9));
     werase(wind_.get());
-    int size = sgs_[c].num < 2 ? 3 : 2 + sgs_[c].num;
-    int movesize = sgs_[c].num < 2 ? 6 : 5 + sgs_[c].num;
-    wind_.reset(newwin(size,sgs_[c].maxnum+4,LINES-movesize,0));
+    int size = results.size() < 2 ? 3 : 2 + results.size();
+    int movesize = results.size() < 2 ? 6 : 5 + results.size();
+    auto maxnum = std::max_element(results.begin(),results.end(),[](const auto&a, const auto& b) { return a.size() < b.size();});
+    wind_.reset(newwin(size,maxnum->size()+4,LINES-movesize,0));
     wbkgd(wind_.get(),COLOR_PAIR(8));
     box(wind_.get(),0,0);
     int count = 0;
-    for(auto& strings : sgs_[c].strings) {
+    for(auto& strings : results) {
         mvwprintw(wind_.get(),1+count,2,strings.c_str());
         count++;
     }
@@ -171,6 +173,6 @@ struct SuggestionWindow : public SnickersWindow {
   }
 
   private:
-  suggestions sgs_;
-
+  SlowTrie trie_;
+  std::string data_;
 };
