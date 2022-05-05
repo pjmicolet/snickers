@@ -155,7 +155,7 @@ struct SuggestionWindow : public SnickersWindow {
     box(wind_.get(),0,0);
     int count = 0;
     for(auto& strings : results) {
-        mvwprintw(wind_.get(),1+count,2,strings.c_str());
+        mvwprintw(wind_.get(),1+count,2,"%s",strings.c_str());
         count++;
     }
     wrefresh(wind_.get());
@@ -169,7 +169,7 @@ struct SuggestionWindow : public SnickersWindow {
   }
   auto flip() -> void {
     wbkgd(wind_.get(),COLOR_PAIR(9));
-    mvwprintw(wind_.get(),1,1,"");
+    mvwprintw(wind_.get(),1,1,"%s","");
   }
 
   private:

@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
             text2.eraseChar();
             if(text2.getString().size() != 0)
             wind2.renderString(text2.getString());
-            topWin2.render();
+            topWin2.refresh();
             continue;
         }
         wind2.flip();
