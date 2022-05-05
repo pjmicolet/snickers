@@ -102,6 +102,7 @@ private:
 
 // Just test helpers
 public:
+  auto getInstructionStrings() -> std::vector<std::string> {std::vector<std::string> thing{instToName.begin(),instToName.end()}; return thing; };
   auto setPC(uint16 pc ) -> void { regs_.PC_ = pc; }
   auto setX(uint8 x ) -> void { regs_.X_ = x; }
   auto setY(uint8 y ) -> void { regs_.Y_ = y; }

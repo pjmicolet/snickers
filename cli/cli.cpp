@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include "cli_tools.h"
+#include "../cores/nes/6502.h"
 
 static int quit_flag;
 static void finish(int sig);
@@ -14,6 +15,7 @@ static void finish(int sig);
 int main(int argc, char *argv[])
 {
     int num = 0;
+    CPU_6502 bla{};
 
     /* initialize your non-curses data structures here */
 
@@ -50,8 +52,7 @@ int main(int argc, char *argv[])
     int y, x;
     TextWindow topWin2 = TextWindow(0,0,LINES-10,COLS,1,2);
     TextWindow text2 = TextWindow(LINES-3,0,3,COLS,1,2);//TextWindow(3,COLS,LINES-3,0,2,1);
-    std::vector<std::string> test = {"ari","abi","ci","di","why"};
-    SuggestionWindow wind2 = SuggestionWindow(LINES-10,0,3,10,0,0,test);//newwin(3,10,LINES-10,0);
+    SuggestionWindow wind2 = SuggestionWindow(LINES-10,0,3,10,0,0,bla.getInstructionStrings());//newwin(3,10,LINES-10,0);
     char c = '\0';
     text2.moveToStart();
     topWin2.refresh();
@@ -77,8 +78,6 @@ int main(int argc, char *argv[])
             text2.eraseChar();
             if(text2.getString().size() != 0)
             wind2.renderString(text2.getString());
-            //topWin2.rebox();
-            //topWin2.refresh();
             topWin2.render();
             continue;
         }
