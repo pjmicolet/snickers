@@ -42,23 +42,23 @@ constexpr auto match(const std::string_view pattern, const std::string_view test
   while(pattern_index < pattern.size() || i < testString.size()) {
     if(i >= testString.size() && pattern_index < pattern.size())
       return false;
-    if(pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'n')
+    if( ( pattern_index < pattern.size() -3 ) && pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'n')
     {
       pattern_index = pattern_index+5;
       bool tilEnd = ( pattern_index >= pattern.size() );
 
-      while((tilEnd && i < testString.size() ) || (testString[i] != pattern[pattern_index])){
+      while((tilEnd && i < testString.size() ) || (i < testString.size() && testString[i] != pattern[pattern_index])){
         if(!(( testString[i] >64 && testString[i]<91) || (testString[i] >96 && testString[i] < 123)))
           return false;
         i++;
       }
       continue;
     } //@digit tag
-    else if(pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'd') {
+    else if(( pattern_index < pattern.size() -3 ) && pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'd') {
       pattern_index = pattern_index+7;
       bool tilEnd = ( pattern_index >= pattern.size() );
 
-      while((tilEnd && i < testString.size() ) || (testString[i] != pattern[pattern_index])){
+      while((tilEnd && i < testString.size() ) || ( i < testString.size() && testString[i] != pattern[pattern_index])){
         if(testString[i] < 48 || testString[i]>57)
             return false;
         i++;
@@ -69,7 +69,7 @@ constexpr auto match(const std::string_view pattern, const std::string_view test
     //You can just do
     //#@byte
     //#@byte@byte
-    else if(pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'b') {
+    else if(( pattern_index < pattern.size() -3 ) && pattern[pattern_index] == '@' && pattern[pattern_index+1] == 'b') {
       pattern_index = pattern_index+5;
       bool tilEnd = ( pattern_index >= pattern.size() );
       uint8_t bytes = 2;
@@ -81,6 +81,8 @@ constexpr auto match(const std::string_view pattern, const std::string_view test
       }
       continue;
     }
+    else if(i >= testString.size() || pattern_index >= pattern.size())
+      return false;
     else if(pattern[pattern_index] != testString[i])
       return false;
     i++;
