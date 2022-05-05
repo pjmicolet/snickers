@@ -28,7 +28,7 @@ using opcode = std::pair<const std::string_view, uint8_t>;
 using offsets = std::array<const size_t,2>;
 
 struct OpType {
-  constexpr OpType(const std::string_view& f, uint8_t opcode, uint8_t opType) : filter_(f), opcode_(opcode), opType_(opType) {};
+  constexpr OpType(const std::string_view& f, uint8_t op, uint8_t opType) : filter_(f), opcode_(op), opType_(opType) {};
   const std::string_view& filter_;
   const uint8_t opcode_;
   const uint8_t opType_;

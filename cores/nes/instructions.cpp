@@ -2,7 +2,7 @@
 #include <iostream>
 
 Instruction::Instruction(bool debug, CPU_6502& cpu, const std::string string)
-    : debug_(debug), cpu_(cpu), regs_(cpu.regs_), name_(string){};
+    : debug_(debug), cpu_(cpu), regs_(cpu.regs_), name_(string){}
 
 auto Instruction::runInstruction() -> void {
     data_ = cpu_.dataFetch();
