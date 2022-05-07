@@ -33,8 +33,13 @@ template <typename T>
     data >>= 8;
   }
 
-  while (temp.back() == std::byte{0})
+  while (!temp.empty() && temp.back() == std::byte{0})
     temp.pop_back();
+  if(temp.empty()) {
+    std::vector<std::byte> actualVec;
+    actualVec.push_back(std::byte{0});
+    return actualVec;
+  }
 
   std::vector<std::byte> actualVec(temp.rbegin(), temp.rend());
 
