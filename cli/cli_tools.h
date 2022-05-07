@@ -83,6 +83,7 @@ struct TextWindow : public SnickersWindow {
     box(wind_.get(),vsep,hsep);
     if(mtStart)
         moveToStart();
+    bufferedStrings_.clear();
   }
 
   auto renderChar(char c) -> void {
@@ -117,9 +118,20 @@ struct TextWindow : public SnickersWindow {
   auto getString() -> std::string {
     return textData_;
   }
-  auto renderString(std::string_view s) -> bool { return true; }
+
+  auto renderString(std::string_view s) -> bool {
+    mvwprintw(wind_.get(),yOffset_,xOffset_,"%s",std::string(s).c_str());
+    box(wind_.get(),vsep,hsep);
+    wrefresh(wind_.get());
+    return true;
+  }
+
+  auto getBufferedStrings() -> std::vector<std::string>& {
+    return bufferedStrings_;
+  }
 
   auto renderNewString(std::string s) -> void {
+    bufferedStrings_.push_back(s);
     mvwprintw(wind_.get(),yOffset_+internal_count_,xOffset_,"%s",s.c_str());
     internal_count_++;
     box(wind_.get(),vsep,hsep);
@@ -128,6 +140,7 @@ struct TextWindow : public SnickersWindow {
 
   private:
   int internal_count_ = 0;
+  std::vector<std::string> bufferedStrings_;
 
 };
 

@@ -8,14 +8,26 @@
 #include <algorithm>
 #include "cli_tools.h"
 #include "../cores/nes/6502.h"
+#include "../assemblers/nes/nes.h"
 
 static int quit_flag;
 static void finish(int sig);
+
+auto write_ram_map(CPU_6502& cpu, std::vector<std::byte>& bytes, std::string& asmOutput) -> size_t {
+  size_t index = 0;
+  for(auto& byte: bytes) {
+    cpu.ram_->store(index,byte);
+    asmOutput += std::to_string(std::to_integer<int>(byte)) + "\n";
+    index++;
+  }
+  return index;
+}
 
 int main(int argc, char *argv[])
 {
     int num = 0;
     CPU_6502 bla{};
+    NesAssembler assembler{};
 
     /* initialize your non-curses data structures here */
 
@@ -50,12 +62,17 @@ int main(int argc, char *argv[])
     }
 
     int y, x;
-    TextWindow topWin2 = TextWindow(0,0,LINES-10,COLS,1,2);
+    TextWindow topWin2 = TextWindow(0,0,LINES-10,COLS-40,1,2);
+    TextWindow cpuWin = TextWindow(0,COLS-40,LINES/2-11,40,1,2);
+    TextWindow asmWin = TextWindow(LINES/2-11,COLS-40,LINES/2+2,40,1,2);
     TextWindow text2 = TextWindow(LINES-3,0,3,COLS,1,2);//TextWindow(3,COLS,LINES-3,0,2,1);
     SuggestionWindow wind2 = SuggestionWindow(LINES-10,0,3,10,0,0,bla.getInstructionStrings());//newwin(3,10,LINES-10,0);
     char c = '\0';
     text2.moveToStart();
     topWin2.refresh();
+    cpuWin.renderString(bla.cliOutput());
+    cpuWin.refresh();
+    asmWin.refresh();
     for (;;)
     {
         c = text2.getChar();
@@ -82,6 +99,20 @@ int main(int argc, char *argv[])
             }
             if(!hadSuggestion)
                 topWin2.render();
+            continue;
+        } else if(c == 18) {
+            bla.clear();
+            auto instructions = topWin2.getBufferedStrings();
+            std::string asmCode = "";
+            for(auto& inst : instructions) {
+                asmCode += inst + "\n";
+            }
+            auto assembly = assembler.assemble(asmCode);
+            std::string dec = "";
+            auto until = write_ram_map(bla,assembly, dec);
+            bla.runProgram(until);
+            asmWin.renderString(dec);
+            cpuWin.renderString(bla.cliOutput());
             continue;
         }
         wind2.flip();
