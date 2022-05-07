@@ -26,7 +26,7 @@ struct SnickersWindow {
 
   virtual auto clear(bool moveToStart) -> void = 0;
   virtual auto renderChar(char c) -> void = 0;
-  virtual auto renderString(std::string_view s) -> void = 0;
+  virtual auto renderString(std::string_view s) -> bool = 0;
   virtual auto moveToStart() -> void {
     SlowTrie S = SlowTrie();
     S.insert("aaa");
@@ -117,7 +117,7 @@ struct TextWindow : public SnickersWindow {
   auto getString() -> std::string {
     return textData_;
   }
-  auto renderString(std::string_view s) -> void {}
+  auto renderString(std::string_view s) -> bool { return true; }
 
   auto renderNewString(std::string s) -> void {
     mvwprintw(wind_.get(),yOffset_+internal_count_,xOffset_,"%s",s.c_str());
@@ -141,10 +141,11 @@ struct SuggestionWindow : public SnickersWindow {
 
   auto renderChar(char c) -> void {}
 
-  auto renderString(std::string_view s) -> void {
+  auto renderString(std::string_view s) -> bool {
     auto results = trie_.getMatches(s);
-    if(results.size() == 0)
-      return;
+    if(results.size() == 0) {
+      return false;
+    }
     wbkgd(wind_.get(),COLOR_PAIR(9));
     werase(wind_.get());
     int size = results.size() < 2 ? 3 : 2 + results.size();
@@ -159,6 +160,7 @@ struct SuggestionWindow : public SnickersWindow {
         count++;
     }
     wrefresh(wind_.get());
+    return true;
   }
 
   auto render() -> void {};

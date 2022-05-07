@@ -76,9 +76,12 @@ int main(int argc, char *argv[])
         } else if(c == 8 || c == 127) {
             wind2.clear(false);
             text2.eraseChar();
-            if(text2.getString().size() != 0)
-            wind2.renderString(text2.getString());
-            topWin2.refresh();
+            bool hadSuggestion = false;
+            if(text2.getString().size() != 0){
+                hadSuggestion = wind2.renderString(text2.getString());
+            }
+            if(!hadSuggestion)
+                topWin2.render();
             continue;
         }
         wind2.flip();
