@@ -46,6 +46,10 @@ auto test_type_basic() -> bool {
   BYTE_EQ(fourByteArrayFull[1], std::byte{0});
   BYTE_EQ(fourByteArrayFull[2], std::byte{0xAB});
   BYTE_EQ(fourByteArrayFull[3], std::byte{0xCD});
+
+  auto zeroBytes = integerToByteVTrim<uint64_t>(0);
+  BYTE_EQ(zeroBytes[0], std::byte{0});
+
   return passed;
 }
 
