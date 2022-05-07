@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
+#include <bitset>
 
 using int8 = Integer<8>;
 using int6 = Integer<6>;
@@ -16,12 +17,53 @@ using uint16 = Unsigned<16>;
 
 using ram_ptr = std::unique_ptr<NES_RAM>;
 
+struct StatusReg {
+  StatusReg() : status_(0b00000000) {}
+  auto setCarry(bool c) -> void {
+    status_[0] = c;
+  }
+  auto setZero(bool z) -> void{
+    status_[1] = z;
+  }
+  auto setInteruptD(bool i) -> void {
+    status_[2] = i;
+  }
+  auto setDecimal(bool d) -> void {
+    status_[3] = d;
+  }
+  auto setOverflow(bool o) -> void {
+    status_[6] = o;
+  }
+  auto setNegative(bool n) -> void {
+    status_[7] = n;
+  }
+  auto clear() -> void {
+    status_ = 0b00000000;
+  }
+
+  auto isCarrySet() -> bool {
+    return status_[0];
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const StatusReg& regs) {
+    os << regs.status_.to_string();
+    return os;
+  }
+
+  auto toString() -> std::string {
+    return status_.to_string();
+  }
+
+  private:
+    std::bitset<8> status_;
+};
+
 struct Registers {
-  Registers() : A_(0), X_(0), Y_(0), S_(0), P_(0), PC_(0) {}
+  Registers() : A_(0), X_(0), Y_(0), S_(), P_(0), PC_(0) {}
   uint8 A_;
   uint8 X_;
   uint8 Y_;
-  uint8 S_;
+  StatusReg S_;
   uint6 P_;
   uint16 PC_;
   friend std::ostream& operator<<(std::ostream& os, const Registers& regs) {
@@ -30,7 +72,7 @@ struct Registers {
   }
 
   auto clear () -> void {
-    A_ = 0; X_ = 0; Y_ = 0; S_ = 0; P_ = 0; PC_ = 0;
+    A_ = 0; X_ = 0; Y_ = 0; S_.clear(); P_ = 0; PC_ = 0;
   }
 };
 
