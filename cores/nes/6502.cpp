@@ -2,7 +2,7 @@
 #include <cstddef>
 
 #define INSINST(name)\
-  insts_.emplace_back(std::make_unique<name>(true,*this));
+  insts_.emplace_back(std::make_unique<name>(false,*this));
 
 CPU_6502::CPU_6502() {
     std::vector<BankInfo> banks{{0x800, 0}, {0x8, 1}, {0x18, 2}, {0x08, 3}, {0xBFE0, 4}};
@@ -122,8 +122,8 @@ auto CPU_6502::printDebug() -> void {
  */
 auto CPU_6502::cliOutput() -> std::string {
   std::string output = "";
-  output += "A[" + std::to_string((uint16) regs_.A_) + "] X["+ std::to_string((uint16) regs_.X_) +"]\n";
-  output += "  Y[" + std::to_string((uint16) regs_.Y_) + "] S["+ std::to_string((uint16) regs_.S_) +"]\n";
+  output += "A[" + regs_.A_.toString() + "] X["+ std::to_string((uint16) regs_.X_) +"]\n";
+  output += "  Y[" + std::to_string((uint16) regs_.Y_) + "] S["+ regs_.S_.toString() +"]\n";
   output += "  P[" + std::to_string((uint16) regs_.P_) + "]\n";
   output += "  PC:" + std::to_string(regs_.PC_) + "\n";
   return output;

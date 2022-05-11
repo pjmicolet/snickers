@@ -12,6 +12,7 @@ using int6 = Integer<6>;
 using int16 = Integer<16>;
 
 using uint8 = Unsigned<8>;
+using uint9 = Unsigned<9>;
 using uint6 = Unsigned<6>;
 using uint16 = Unsigned<16>;
 
@@ -58,9 +59,98 @@ struct StatusReg {
     std::bitset<8> status_;
 };
 
+struct AReg {
+
+  AReg(uint8 a) : A_(a), carry_(false), overflow_(false), isZero_(false), isNeg_(false) {};
+
+  auto operator+(const uint8 otherNum) {
+    uint9 res = A_ + (uint9)otherNum;
+    bool carry = false;
+    bool overflow = false;
+    bool isZero = false;
+    if(res&0x100){
+      carry = true;
+    }
+    res = res & 0xFF;
+    if(res == 0)
+      isZero = true;
+    if((A_ ^ res) & (otherNum ^ res) & 0x80) {
+      overflow = true;
+    }
+    bool isNeg = res & 0x80;
+    res = res & 0xFF;
+    return AReg(res,carry,overflow,isZero, isNeg);
+  }
+
+  //  to operator+=(const uint8 otherNum) {
+  //  uint9 tmp = A_ + (uint9) otherNum;
+  //  if(tmp&0x100){
+  //    carry_ = true;
+  //  }
+  //  tmp = tmp & 0xFF;
+  //  if(tmp == 0)
+  //    isZero_ = true;
+  //  if((A_ ^ tmp) & (otherNum ^ tmp) & 0x80) {
+  //    overflow_ = true;
+  //  }
+  //  isNeg_ = tmp & 0x80;
+  //  A_ = tmp;
+  //  return this;
+  //}
+
+  // It's the only way I can easily do overflow detection
+  auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
+    uint9 tmp = A_ + (uint9) dataCarryPair.first + (uint9) dataCarryPair.second;
+    if(tmp&0x100){
+      carry_ = true;
+    }
+    tmp = tmp & 0xFF;
+    if(tmp == 0)
+      isZero_ = true;
+    if((A_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
+      overflow_ = true;
+    }
+    isNeg_ = tmp & 0x80;
+    A_ = tmp;
+    return this;
+  }
+
+  auto operator=(const uint8 num) {
+    A_ = static_cast<uint9>(num);
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const AReg& regs) {
+    os << regs.A_;
+    return os;
+  }
+
+  auto toString() -> std::string {
+    return std::to_string((uint16) A_);
+  }
+
+  operator uint8() const {
+    return A_;
+  }
+
+  // I'll eventually regret this
+  auto hasCarry() -> bool {auto tmp = carry_; carry_ = false; return tmp;}
+  auto isZero() -> bool {auto tmp = isZero_; isZero_ = false; return tmp;}
+  auto hasOverflown() -> bool {auto tmp = overflow_; overflow_ = false; return tmp;}
+  auto isNegative() -> bool {auto tmp = isNeg_; isNeg_ = false; return tmp;}
+
+  private:
+  AReg(uint9 a, bool carry, bool overflow, bool isZero, bool isNeg) : A_(a), carry_(carry), overflow_(overflow), isZero_(isZero), isNeg_(isNeg) {};
+  private:
+  uint9 A_;
+  bool carry_;
+  bool overflow_;
+  bool isZero_;
+  bool isNeg_;
+};
+
 struct Registers {
   Registers() : A_(0), X_(0), Y_(0), S_(), P_(0), PC_(0) {}
-  uint8 A_;
+  AReg A_;
   uint8 X_;
   uint8 Y_;
   StatusReg S_;

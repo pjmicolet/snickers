@@ -98,11 +98,9 @@ auto test_nes_execute() -> bool {
   CPU_6502 cpu{};
   NesAssembler nesAs{};
   auto ram_data = nesAs.assemble("ADC #20");
-  std::cout << std::to_integer<int>(ram_data[0]) << " " << std::to_integer<int>(ram_data[1]) << "\n";
   write_ram_map(cpu,ram_data);
   cpu.setPC(0);
   cpu.execute();
-  cpu.printDebug();
   return passed;
 }
 

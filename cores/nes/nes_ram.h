@@ -21,6 +21,7 @@ public:
   };
   auto store(const unsigned int index, const std::byte data) noexcept(DONT_THROW) -> void override;
   auto addressToBank(const unsigned int address) const noexcept(DONT_THROW) -> unsigned int override;
+  auto getSize() -> size_t;
 
 private:
   // Do we really need this at any point ?

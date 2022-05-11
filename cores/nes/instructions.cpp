@@ -13,11 +13,11 @@ auto Instruction::runInstruction() -> void {
 
 void Adc::execute() {
   uint8 c = regs_.S_.isCarrySet() ? 1 : 0;
-  auto temp = regs_.A_ + data_ + c;
-  regs_.A_ = static_cast<uint8>(temp);
-  regs_.S_.setCarry(temp & 0x100);
-  regs_.S_.setZero(regs_.A_ == 0);
-  regs_.S_.setNegative((regs_.A_ & 0x80 == 0x80));
+  regs_.A_ += {data_,c};
+  regs_.S_.setCarry(regs_.A_.hasCarry());
+  regs_.S_.setZero(regs_.A_.isZero());
+  regs_.S_.setNegative(regs_.A_.isNegative());
+  regs_.S_.setOverflow(regs_.A_.hasOverflown());
 }
 
 //void Adc::setFlags() {
