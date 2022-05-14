@@ -115,6 +115,15 @@ struct AReg {
     return this;
   }
 
+  auto operator &=(const uint8 num) {
+    A_ = A_ & num;
+    if(A_ == 0)
+      isZero_ = true;
+    if(A_ & 0x80)
+      isNeg_ = true;
+    return this;
+  }
+
   auto operator=(const uint8 num) {
     A_ = static_cast<uint9>(num);
   }

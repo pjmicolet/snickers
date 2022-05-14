@@ -17,7 +17,7 @@ auto write_ram_map(CPU_6502& cpu, std::vector<std::byte>& bytes, std::string& as
   size_t index = 0;
   for(auto& byte: bytes) {
     cpu.ram_->store(index,byte);
-    asmOutput += std::to_string(std::to_integer<int>(byte)) + "\n";
+    asmOutput += std::to_string(std::to_integer<int>(byte)) + " ";
     index++;
   }
   return index;
@@ -107,6 +107,8 @@ int main(int argc, char *argv[])
             for(auto& inst : instructions) {
                 asmCode += inst + "\n";
             }
+            std::transform(asmCode.begin(),asmCode.end(),asmCode.begin(),
+                                     [](unsigned char c) {return std::toupper(c);});
             auto assembly = assembler.assemble(asmCode);
             std::string dec = "";
             auto until = write_ram_map(bla,assembly, dec);

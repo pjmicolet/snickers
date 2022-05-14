@@ -20,14 +20,14 @@ void Adc::execute() {
   regs_.S_.setOverflow(regs_.A_.hasOverflown());
 }
 
-//void Adc::setFlags() {
-//
-//}
-
 void Ahx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Alr::execute() {}// std::cout << "Not implemented yet!\n";}
 void Anc::execute() {}// std::cout << "Not implemented yet!\n";}
-void And::execute() {}// std::cout << "Not implemented yet!\n";}
+void And::execute() {
+  regs_.A_ &= data_;
+  regs_.S_.setZero(regs_.A_.isZero());
+  regs_.S_.setNegative(regs_.A_.isNegative());
+}// std::cout << "Not implemented yet!\n";}
 void Arr::execute() {}// std::cout << "Not implemented yet!\n";}
 void Asl::execute() {}// std::cout << "Not implemented yet!\n";}
 void Axs::execute() {}// std::cout << "Not implemented yet!\n";}

@@ -170,8 +170,9 @@ struct OpTable {
       IMPL(0x9A)//TXS
       IMPL(0x98)//TYA
     };
-  public:
-    constexpr auto getOffsets(const std::string_view& inst) const -> offsets {
+
+   public:
+   constexpr auto getOffsets(const std::string_view& inst) const -> offsets {
       size_t start = 0;
       MATCH_INST("ADC",8) MATCH_INST("AND",8) MATCH_INST("ASL",5) MATCH_INST("BCC",1) MATCH_INST("BCS",1)
       MATCH_INST("BEQ",1) MATCH_INST("BIT",2) MATCH_INST("BMI",1) MATCH_INST("BNE",1) MATCH_INST("BPL",1)
