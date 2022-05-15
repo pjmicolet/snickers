@@ -10,7 +10,8 @@ CPU_6502::CPU_6502() {
     // I know there's 0x10000 addresses but technically
     // these are the only ones that are actually used;
     BanksAndSize cfg = {banks, 0xC808};
-    ram_ = std::make_unique<NES_RAM>(cfg);
+    ram_ = std::make_shared<NES_RAM>(cfg);
+    wbc_ = WriteBackCont{ram_};
     bool debug = false;
     INSINST(Brk) INSINST(Ora) INSINST(Kil) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Php) INSINST(Ora) INSINST(Asl) INSINST(Anc) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Bpl) INSINST(Ora) INSINST(Kil) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Clc) INSINST(Ora) INSINST(Nop) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo)
     INSINST(Jsr) INSINST(And) INSINST(Kil) INSINST(Rla) INSINST(Bit) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Plp) INSINST(And) INSINST(Rol) INSINST(Anc) INSINST(Bit) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Bmi) INSINST(And) INSINST(Kil) INSINST(Rla) INSINST(Nop) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Sec) INSINST(And) INSINST(Nop) INSINST(Rla) INSINST(Nop) INSINST(And) INSINST(Rol) INSINST(Rla)
@@ -73,20 +74,34 @@ auto CPU_6502::dataFetch() -> uint8 {
   std::byte data;
   switch (addressingMode) {
     break; case IMPL: return 0;//there's no real fetch here afaik
-    break; case ACC: return 0; //there's no real fetch here afaik
+    break; case ACC: return regs_.A_; //there's no real fetch here afaik
     break; case IMM: data = ram_->load( regs_.PC_ + 1 );
     break; case ZP: data = ram_->load(ramToAddress(ram_, regs_.PC_+1));
-    break; case ZPX: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+regs_.X_);
-    break; case ZPY: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+regs_.Y_);
+    break; case ZPX: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_));
+    break; case ZPY: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_));
     break; case REL: data = ram_->load(regs_.PC_+1);
     break; case ABS: data = ram_->load(twoByteAddress(ram_, regs_.PC_));
-    break; case ABSX: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+regs_.X_);
-    break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+regs_.Y_);
+    break; case ABSX: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.X_));
+    break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.Y_));
     break; case INDX: data = ram_->load(indirectX(ram_, regs_.PC_,regs_.X_));
     break; case INDY: data = ram_->load(indirectY(ram_, regs_.PC_,regs_.Y_));
     break; default: throw( "This is wrong!" );
   };
   return std::to_integer<uint8_t>(data);
+}
+
+auto CPU_6502::setWriteBackCont() -> void {
+  wbc_.reset();
+  auto destMode = resolveDestMode( regs_.PC_ );
+  switch (destMode) {
+    break; case AREG:  wbc_.setReg(regs_.A_);
+    break; case SREG:  wbc_.setReg(regs_.S_);
+    break; case PCREG: wbc_.setReg(regs_.PC_);
+    break; case PREG:  wbc_.setReg(regs_.P_);
+    break; case YREG:  wbc_.setReg(regs_.Y_);
+    break; case XREG:  wbc_.setReg(regs_.X_);
+    break; case MEM:   wbc_.setMem(indexFetch());
+  };
 }
 
 auto CPU_6502::incrementPC() -> void {
@@ -105,7 +120,15 @@ auto CPU_6502::incrementPC() -> void {
 auto CPU_6502::indexFetch() -> uint16 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   switch (addressingMode) {
-    break; case IND: return resolveIndirectAddress(ram_, regs_.PC_, 0);
+    break; case ZP:   return ramToAddress(ram_, regs_.PC_+1);
+    break; case ZPX:  return ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_);
+    break; case ZPY:  return ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_);
+    break; case REL:  return regs_.PC_+1;
+    break; case ABS:  return twoByteAddress(ram_, regs_.PC_);
+    break; case ABSX: return twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.X_);
+    break; case ABSY: return twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.Y_);
+    break; case INDX: return indirectX(ram_, regs_.PC_,regs_.X_);
+    break; case IND:  return resolveIndirectAddress(ram_, regs_.PC_, 0);
     default:
       throw( "There's no other case where we should get indexes" );
   }
@@ -123,8 +146,8 @@ auto CPU_6502::printDebug() -> void {
 auto CPU_6502::cliOutput() -> std::string {
   std::string output = "";
   output += "A[" + regs_.A_.toString() + "] X["+ std::to_string((uint16) regs_.X_) +"]\n";
-  output += "  Y[" + std::to_string((uint16) regs_.Y_) + "] S["+ regs_.S_.toString() +"]\n";
-  output += "  P[" + std::to_string((uint16) regs_.P_) + "]\n";
+  output += "  Y[" + std::to_string((uint16) regs_.Y_) + "] S["+ std::to_string((uint16)regs_.S_) +"]\n";
+  output += "  P[" + regs_.P_.toString() + "]\n";
   output += "  PC:" + std::to_string(regs_.PC_) + "\n";
   return output;
 }

@@ -3,9 +3,11 @@
 #include "6502.h"
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 
 struct CPU_6502;
 struct Registers;
+struct WriteBackCont;
 
 using int8 = Integer<8>;
 using int6 = Integer<6>;
@@ -50,6 +52,7 @@ private:
 protected:
   const bool debug_;
   CPU_6502& cpu_;
+  WriteBackCont& wbc_;
   Registers& regs_;
   const std::string name_;
   uint16 data_;

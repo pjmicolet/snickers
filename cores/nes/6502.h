@@ -16,7 +16,7 @@ using uint9 = Unsigned<9>;
 using uint6 = Unsigned<6>;
 using uint16 = Unsigned<16>;
 
-using ram_ptr = std::unique_ptr<NES_RAM>;
+using ram_ptr = std::shared_ptr<NES_RAM>;
 
 struct StatusReg {
   StatusReg() : status_(0b00000000) {}
@@ -59,12 +59,12 @@ struct StatusReg {
     std::bitset<8> status_;
 };
 
-struct AReg {
+struct Reg {
 
-  AReg(uint8 a) : A_(a), carry_(false), overflow_(false), isZero_(false), isNeg_(false) {};
+  Reg(uint8 a) : RVal_(a), carry_(false), overflow_(false), isZero_(false), isNeg_(false) {};
 
   auto operator+(const uint8 otherNum) {
-    uint9 res = A_ + (uint9)otherNum;
+    uint9 res = RVal_ + (uint9)otherNum;
     bool carry = false;
     bool overflow = false;
     bool isZero = false;
@@ -74,71 +74,67 @@ struct AReg {
     res = res & 0xFF;
     if(res == 0)
       isZero = true;
-    if((A_ ^ res) & (otherNum ^ res) & 0x80) {
+    if((RVal_ ^ res) & (otherNum ^ res) & 0x80) {
       overflow = true;
     }
     bool isNeg = res & 0x80;
     res = res & 0xFF;
-    return AReg(res,carry,overflow,isZero, isNeg);
+    return Reg(res,carry,overflow,isZero, isNeg);
   }
-
-  //  to operator+=(const uint8 otherNum) {
-  //  uint9 tmp = A_ + (uint9) otherNum;
-  //  if(tmp&0x100){
-  //    carry_ = true;
-  //  }
-  //  tmp = tmp & 0xFF;
-  //  if(tmp == 0)
-  //    isZero_ = true;
-  //  if((A_ ^ tmp) & (otherNum ^ tmp) & 0x80) {
-  //    overflow_ = true;
-  //  }
-  //  isNeg_ = tmp & 0x80;
-  //  A_ = tmp;
-  //  return this;
-  //}
 
   // It's the only way I can easily do overflow detection
   auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
-    uint9 tmp = A_ + (uint9) dataCarryPair.first + (uint9) dataCarryPair.second;
+    uint9 tmp = RVal_ + (uint9) dataCarryPair.first + (uint9) dataCarryPair.second;
     if(tmp&0x100){
       carry_ = true;
     }
     tmp = tmp & 0xFF;
     if(tmp == 0)
       isZero_ = true;
-    if((A_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
+    if((RVal_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
       overflow_ = true;
     }
     isNeg_ = tmp & 0x80;
-    A_ = tmp;
+    RVal_ = tmp;
     return this;
   }
 
   auto operator &=(const uint8 num) {
-    A_ = A_ & num;
-    if(A_ == 0)
+    RVal_ = RVal_ & num;
+    if(RVal_ == 0)
       isZero_ = true;
-    if(A_ & 0x80)
+    if(RVal_ & 0x80)
       isNeg_ = true;
     return this;
   }
 
-  auto operator=(const uint8 num) {
-    A_ = static_cast<uint9>(num);
+  auto operator <<=(const uint8 num) {
+    return this;
   }
 
-  friend std::ostream& operator<<(std::ostream& os, const AReg& regs) {
-    os << regs.A_;
+  auto operator=(const uint8 num) {
+    if(num == 0)
+      isZero_ = true;
+    if(num & 0x80)
+      isNeg_ = true;
+    RVal_ = static_cast<uint9>(num);
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const Reg& regs) {
+    os << regs.RVal_;
     return os;
   }
 
   auto toString() -> std::string {
-    return std::to_string((uint16) A_);
+    return std::to_string((uint16) RVal_);
   }
 
   operator uint8() const {
-    return A_;
+    return RVal_;
+  }
+
+  operator uint16() const {
+    return static_cast<uint16>(RVal_);
   }
 
   // I'll eventually regret this
@@ -148,9 +144,9 @@ struct AReg {
   auto isNegative() -> bool {auto tmp = isNeg_; isNeg_ = false; return tmp;}
 
   private:
-  AReg(uint9 a, bool carry, bool overflow, bool isZero, bool isNeg) : A_(a), carry_(carry), overflow_(overflow), isZero_(isZero), isNeg_(isNeg) {};
+  Reg(uint9 a, bool carry, bool overflow, bool isZero, bool isNeg) : RVal_(a), carry_(carry), overflow_(overflow), isZero_(isZero), isNeg_(isNeg) {};
   private:
-  uint9 A_;
+  uint9 RVal_;
   bool carry_;
   bool overflow_;
   bool isZero_;
@@ -158,12 +154,12 @@ struct AReg {
 };
 
 struct Registers {
-  Registers() : A_(0), X_(0), Y_(0), S_(), P_(0), PC_(0) {}
-  AReg A_;
-  uint8 X_;
-  uint8 Y_;
-  StatusReg S_;
-  uint6 P_;
+  Registers() : A_(0), X_(0), Y_(0), S_(0), P_(), PC_(0) {}
+  Reg A_;
+  Reg X_;
+  Reg Y_;
+  Reg S_;
+  StatusReg P_;
   uint16 PC_;
   friend std::ostream& operator<<(std::ostream& os, const Registers& regs) {
     os << "["<<regs.PC_ << "]: A[" << regs.A_ << "] X[" << regs.X_ << "] Y[" << regs.Y_ << "] S[" << regs.S_ << "] P[" << regs.P_<<"]\n";
@@ -171,7 +167,7 @@ struct Registers {
   }
 
   auto clear () -> void {
-    A_ = 0; X_ = 0; Y_ = 0; S_.clear(); P_ = 0; PC_ = 0;
+    A_ = 0; X_ = 0; Y_ = 0; S_ = 0; P_.clear(); PC_ = 0;
   }
 };
 
@@ -191,13 +187,115 @@ enum NES_ADDRESS_MODE {
   INDY, // indirect indexed
 };
 
+enum NES_DESTINATION {
+  AREG, //A Register
+  ZREG, //Z Register
+  YREG, //Y Register
+  XREG, //Y Register
+  MEM, // Memory
+  PCREG, //PC Register
+  SREG, // S Register
+  PREG, // P Register
+  NOP, // No destination
+};
+
+struct WriteBackCont {
+  WriteBackCont() {}
+
+  WriteBackCont(std::shared_ptr<NES_RAM> ram)  : ram_(ram) {}
+
+  auto reset() -> void {
+    ptr = nullptr;
+    sptr = nullptr;
+    pcptr = nullptr;
+    memAddr_ = 0;
+    carry_ = false;
+    overflow_ = false;
+    isZero_ = false;
+    isNeg_ = false;
+  }
+
+  auto setReg(Reg& regptr) -> void { ptr = &regptr; }
+  auto setReg(StatusReg& regptr) -> void { unsetReg(); sptr = &regptr; }
+  auto setReg(uint16& ptr) -> void { unsetReg(); pcptr = &ptr; }
+  auto unsetReg() -> void { ptr = nullptr; }
+  auto setMem(uint16 memAddress) -> void { unsetReg(); memAddr_ = memAddress; }
+  auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
+    if(ptr != nullptr) {
+      *ptr += dataCarryPair;
+    }
+    return this;
+  }
+
+  auto operator =(const uint8 data) {
+    if(ptr != nullptr) {
+      *ptr = data;
+    } else {
+      if(data == 0)
+        isZero_ = true;
+      if(data & 0x80)
+        isNeg_ = true;
+      ram_->store((size_t)memAddr_,std::byte{(uint8_t)data});
+    }
+  }
+
+  auto operator &=(const uint8 data) {
+    if(ptr != nullptr) {
+      *ptr &= data;
+    }
+    return this;
+  }
+
+  auto operator <<=(const uint8 data) {
+    if(ptr != nullptr) {
+      *ptr <<= data;
+    } else {
+    }
+    return *this;
+  }
+
+  // I'll eventually regret this
+  auto hasCarry() -> bool {
+    if(ptr != nullptr)
+      return ptr->hasCarry();
+    auto tmp = carry_; carry_ = false; return tmp;
+  }
+  auto isZero() -> bool {
+    if(ptr != nullptr)
+      return ptr->isZero();
+    auto tmp = isZero_; isZero_ = false; return tmp;
+  }
+  auto hasOverflown() -> bool {
+    if(ptr != nullptr)
+      return ptr->hasOverflown();
+    auto tmp = overflow_; overflow_ = false; return tmp;
+  }
+  auto isNegative() -> bool {
+    if(ptr != nullptr)
+      return ptr->isNegative();
+    auto tmp = isNeg_; isNeg_ = false; return tmp;
+  }
+
+  private:
+    std::shared_ptr<NES_RAM> ram_;
+    uint16_t memAddr_ = 0;
+    Reg* ptr = nullptr;
+    StatusReg* sptr = nullptr;
+    uint16* pcptr = nullptr;
+    bool carry_ = false;
+    bool overflow_ = false;
+    bool isZero_ = false;
+    bool isNeg_ = false;
+};
+
 class Instruction;
 
 struct CPU_6502 {
   CPU_6502();
 
-  std::unique_ptr<NES_RAM> ram_;
+  std::shared_ptr<NES_RAM> ram_;
   auto dataFetch() -> uint8;
+  auto setWriteBackCont() -> void;
   auto execute() -> void;
   auto printDebug() -> void;
   auto cliOutput() -> std::string;
@@ -208,17 +306,29 @@ struct CPU_6502 {
 
 protected:
   Registers regs_;
+  WriteBackCont wbc_;
 
   // clang-format off
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {
-      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      ABS,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, IMPL, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX
+      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      ABS,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM,ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX
+  };
+
+  std::array<NES_DESTINATION, 256> instToDestination = {
+      SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP, SREG,  AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      YREG, AREG, XREG,XREG,YREG, AREG, XREG,XREG, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
   };
 
   std::array<std::string, 256> instToName = {
@@ -236,12 +346,18 @@ private:
   auto indexFetch() -> uint16;
 
   inline auto resolveAddMode(uint16 PC) -> NES_ADDRESS_MODE {
+     auto instruction = ram_->load(PC);
+     return instToAddressMode[std::to_integer<size_t>(instruction)];
+  }
+
+  inline auto resolveDestMode(uint16 PC) -> NES_DESTINATION {
     auto instruction = ram_->load(PC);
-    return instToAddressMode[std::to_integer<size_t>(instruction)];
- }
- inline auto getInstructionOp() -> size_t {
-   return std::to_integer<size_t>(ram_->load(regs_.PC_));
- }
+    return instToDestination[std::to_integer<size_t>(instruction)];
+  }
+
+  inline auto getInstructionOp() -> size_t {
+    return std::to_integer<size_t>(ram_->load(regs_.PC_));
+  }
  auto incrementPC() -> void;
 
   friend class Instruction;

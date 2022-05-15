@@ -2,34 +2,41 @@
 #include <iostream>
 
 Instruction::Instruction(bool debug, CPU_6502& cpu, const std::string string)
-    : debug_(debug), cpu_(cpu), regs_(cpu.regs_), name_(string){};
+    : debug_(debug), cpu_(cpu),  wbc_(cpu.wbc_), regs_(cpu.regs_), name_(string){};
 
 auto Instruction::runInstruction() -> void {
     data_ = static_cast<uint16>(cpu_.dataFetch());
+    cpu_.setWriteBackCont();
     execute();
     if (debug_)
       debug();
 }
 
 void Adc::execute() {
-  uint8 c = regs_.S_.isCarrySet() ? 1 : 0;
-  regs_.A_ += {data_,c};
-  regs_.S_.setCarry(regs_.A_.hasCarry());
-  regs_.S_.setZero(regs_.A_.isZero());
-  regs_.S_.setNegative(regs_.A_.isNegative());
-  regs_.S_.setOverflow(regs_.A_.hasOverflown());
+  uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
+  wbc_ += {data_,c};
+  regs_.P_.setCarry(wbc_.hasCarry());
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setOverflow(wbc_.hasOverflown());
 }
 
 void Ahx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Alr::execute() {}// std::cout << "Not implemented yet!\n";}
 void Anc::execute() {}// std::cout << "Not implemented yet!\n";}
 void And::execute() {
-  regs_.A_ &= data_;
-  regs_.S_.setZero(regs_.A_.isZero());
-  regs_.S_.setNegative(regs_.A_.isNegative());
-}// std::cout << "Not implemented yet!\n";}
+  wbc_ &= data_;
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}
+
 void Arr::execute() {}// std::cout << "Not implemented yet!\n";}
-void Asl::execute() {}// std::cout << "Not implemented yet!\n";}
+
+void Asl::execute() {
+  regs_.P_.setCarry(data_ & 0x80);
+  wbc_ = (data_ << 1);
+}
+
 void Axs::execute() {}// std::cout << "Not implemented yet!\n";}
 void Bcc::execute() {}// std::cout << "Not implemented yet!\n";}
 void Bcs::execute() {}// std::cout << "Not implemented yet!\n";}
@@ -62,7 +69,11 @@ void Jsr::execute() {}// std::cout << "Not implemented yet!\n";}
 void Kil::execute() {}// std::cout << "Not implemented yet!\n";}
 void Las::execute() {}// std::cout << "Not implemented yet!\n";}
 void Lax::execute() {}// std::cout << "Not implemented yet!\n";}
-void Lda::execute() {}// std::cout << "Not implemented yet!\n";}
+void Lda::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
 void Ldx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Ldy::execute() {}// std::cout << "Not implemented yet!\n";}
 void Lsr::execute() {}// std::cout << "Not implemented yet!\n";}
@@ -87,7 +98,9 @@ void Shx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Shy::execute() {}// std::cout << "Not implemented yet!\n";}
 void Slo::execute() {}// std::cout << "Not implemented yet!\n";}
 void Sre::execute() {}// std::cout << "Not implemented yet!\n";}
-void Sta::execute() {}// std::cout << "Not implemented yet!\n";}
+void Sta::execute() {
+  wbc_ = (uint8)regs_.A_; // fix this
+}// std::cout << "Not implemented yet!\n";}
 void Stx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Sty::execute() {}// std::cout << "Not implemented yet!\n";}
 void Tas::execute() {}// std::cout << "Not implemented yet!\n";}
