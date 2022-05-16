@@ -48,9 +48,15 @@ void Bpl::execute() {}// std::cout << "Not implemented yet!\n";}
 void Brk::execute() {}// std::cout << "Not implemented yet!\n";}
 void Bvc::execute() {}// std::cout << "Not implemented yet!\n";}
 void Bvs::execute() {}// std::cout << "Not implemented yet!\n";}
-void Clc::execute() {}// std::cout << "Not implemented yet!\n";}
-void Cld::execute() {}// std::cout << "Not implemented yet!\n";}
-void Cli::execute() {}// std::cout << "Not implemented yet!\n";}
+void Clc::execute() {
+  regs_.P_.setCarry(false);
+}// std::cout << "Not implemented yet!\n";}
+void Cld::execute() {
+  regs_.P_.setDecimal(false);
+}// std::cout << "Not implemented yet!\n";}
+void Cli::execute() {
+  regs_.P_.setInteruptD(false);
+}// std::cout << "Not implemented yet!\n";}
 void Clv::execute() {}// std::cout << "Not implemented yet!\n";}
 void Cmp::execute() {}// std::cout << "Not implemented yet!\n";}
 void Cpx::execute() {}// std::cout << "Not implemented yet!\n";}
@@ -60,9 +66,21 @@ void Dec::execute() {}// std::cout << "Not implemented yet!\n";}
 void Dex::execute() {}// std::cout << "Not implemented yet!\n";}
 void Dey::execute() {}// std::cout << "Not implemented yet!\n";}
 void Eor::execute() {}// std::cout << "Not implemented yet!\n";}
-void Inc::execute() {}// std::cout << "Not implemented yet!\n";}
-void Inx::execute() {}// std::cout << "Not implemented yet!\n";}
-void Iny::execute() {}// std::cout << "Not implemented yet!\n";}
+void Inc::execute() {
+  wbc_ = (data_ + 1);
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}// std::cout << "Not implemented yet!\n";}
+void Inx::execute() {
+  wbc_ += {1,0};
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}// std::cout << "Not implemented yet!\n";}
+void Iny::execute() {
+  wbc_ += {1,0};
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}// std::cout << "Not implemented yet!\n";}
 void Isc::execute() {}// std::cout << "Not implemented yet!\n";}
 void Jmp::execute() {}// std::cout << "Not implemented yet!\n";}
 void Jsr::execute() {}// std::cout << "Not implemented yet!\n";}
@@ -74,8 +92,16 @@ void Lda::execute() {
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }// std::cout << "Not implemented yet!\n";}
-void Ldx::execute() {}// std::cout << "Not implemented yet!\n";}
-void Ldy::execute() {}// std::cout << "Not implemented yet!\n";}
+void Ldx::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
+void Ldy::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
 void Lsr::execute() {}// std::cout << "Not implemented yet!\n";}
 void Nop::execute() {}// std::cout << "Not implemented yet!\n";}
 void Ora::execute() {}// std::cout << "Not implemented yet!\n";}
@@ -91,9 +117,15 @@ void Rti::execute() {}// std::cout << "Not implemented yet!\n";}
 void Rts::execute() {}// std::cout << "Not implemented yet!\n";}
 void Sbc::execute() {}// std::cout << "Not implemented yet!\n";}
 void Sax::execute() {}// std::cout << "Not implemented yet!\n";}
-void Sec::execute() {}// std::cout << "Not implemented yet!\n";}
-void Sed::execute() {}// std::cout << "Not implemented yet!\n";}
-void Sei::execute() {}// std::cout << "Not implemented yet!\n";}
+void Sec::execute() {
+  regs_.P_.setCarry(true);
+}// std::cout << "Not implemented yet!\n";}
+void Sed::execute() {
+  regs_.P_.setDecimal(true);
+}// std::cout << "Not implemented yet!\n";}
+void Sei::execute() {
+  regs_.P_.setInteruptD(true);
+}// std::cout << "Not implemented yet!\n";}
 void Shx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Shy::execute() {}// std::cout << "Not implemented yet!\n";}
 void Slo::execute() {}// std::cout << "Not implemented yet!\n";}
@@ -101,13 +133,33 @@ void Sre::execute() {}// std::cout << "Not implemented yet!\n";}
 void Sta::execute() {
   wbc_ = (uint8)regs_.A_; // fix this
 }// std::cout << "Not implemented yet!\n";}
-void Stx::execute() {}// std::cout << "Not implemented yet!\n";}
-void Sty::execute() {}// std::cout << "Not implemented yet!\n";}
+void Stx::execute() {
+  wbc_ = (uint8)regs_.X_;
+}// std::cout << "Not implemented yet!\n";}
+void Sty::execute() {
+  wbc_ = (uint8)regs_.Y_;
+}// std::cout << "Not implemented yet!\n";}
 void Tas::execute() {}// std::cout << "Not implemented yet!\n";}
-void Tax::execute() {}// std::cout << "Not implemented yet!\n";}
-void Tay::execute() {}// std::cout << "Not implemented yet!\n";}
+void Tax::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
+void Tay::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
 void Tsx::execute() {}// std::cout << "Not implemented yet!\n";}
-void Txa::execute() {}// std::cout << "Not implemented yet!\n";}
+void Txa::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
 void Txs::execute() {}// std::cout << "Not implemented yet!\n";}
-void Tya::execute() {}// std::cout << "Not implemented yet!\n";}
+void Tya::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}// std::cout << "Not implemented yet!\n";}
 void Xaa::execute() {}// std::cout << "Not implemented yet!\n";}
