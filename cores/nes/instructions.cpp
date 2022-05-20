@@ -62,9 +62,21 @@ void Cmp::execute() {}// std::cout << "Not implemented yet!\n";}
 void Cpx::execute() {}// std::cout << "Not implemented yet!\n";}
 void Cpy::execute() {}// std::cout << "Not implemented yet!\n";}
 void Dcp::execute() {}// std::cout << "Not implemented yet!\n";}
-void Dec::execute() {}// std::cout << "Not implemented yet!\n";}
-void Dex::execute() {}// std::cout << "Not implemented yet!\n";}
-void Dey::execute() {}// std::cout << "Not implemented yet!\n";}
+void Dec::execute() {
+  wbc_ = (data_ - 1);
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}// std::cout << "Not implemented yet!\n";}
+void Dex::execute() {// std::cout << "Not implemented yet!\n";}
+  wbc_ -= 1; //fix this
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}
+void Dey::execute() {
+  wbc_ -= 1;
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}
 void Eor::execute() {}// std::cout << "Not implemented yet!\n";}
 void Inc::execute() {
   wbc_ = (data_ + 1);
@@ -115,7 +127,14 @@ void Rol::execute() {}// std::cout << "Not implemented yet!\n";}
 void Ror::execute() {}// std::cout << "Not implemented yet!\n";}
 void Rti::execute() {}// std::cout << "Not implemented yet!\n";}
 void Rts::execute() {}// std::cout << "Not implemented yet!\n";}
-void Sbc::execute() {}// std::cout << "Not implemented yet!\n";}
+void Sbc::execute() {
+  uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
+  wbc_ -= {data_,c};
+  regs_.P_.setCarry(wbc_.hasCarry());
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setOverflow(wbc_.hasOverflown());
+}// std::cout << "Not implemented yet!\n";}
 void Sax::execute() {}// std::cout << "Not implemented yet!\n";}
 void Sec::execute() {
   regs_.P_.setCarry(true);

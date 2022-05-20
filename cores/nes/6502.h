@@ -68,14 +68,13 @@ struct Reg {
     bool carry = false;
     bool overflow = false;
     bool isZero = false;
-    if(res&0x100){
-      carry = true;
-    }
+    carry_ = (res&0x100 == 0x100);
     res = res & 0xFF;
-    if(res == 0)
-      isZero = true;
+    isZero_ = (res == 0);
     if((RVal_ ^ res) & (otherNum ^ res) & 0x80) {
       overflow = true;
+    } else {
+      overflow = false;
     }
     bool isNeg = res & 0x80;
     res = res & 0xFF;
@@ -85,15 +84,38 @@ struct Reg {
   // It's the only way I can easily do overflow detection
   auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
     uint9 tmp = RVal_ + (uint9) dataCarryPair.first + (uint9) dataCarryPair.second;
-    if(tmp&0x100){
-      carry_ = true;
-    }
+    carry_ = (tmp&0x100 == 0x100);
     tmp = tmp & 0xFF;
-    if(tmp == 0)
-      isZero_ = true;
+    isZero_ = (tmp == 0);
     if((RVal_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
       overflow_ = true;
+    } else {
+      overflow_ = false;
     }
+    isNeg_ = tmp & 0x80;
+    RVal_ = tmp;
+    return this;
+  }
+
+  auto operator -=(const std::pair<uint8,uint8>dataCarryPair){
+    uint9 tmp = RVal_ - (uint9) dataCarryPair.first - (1 - (uint9) dataCarryPair.second);
+    carry_ = (tmp&0x100);
+    tmp = tmp & 0xFF;
+    isZero_ = (tmp == 0);
+    if((RVal_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
+      overflow_ = true;
+    } else {
+      overflow_ = false;
+    }
+    isNeg_ = tmp & 0x80;
+    RVal_ = tmp;
+    return this;
+  }
+
+  auto operator -=(int data){
+    uint9 tmp = RVal_ - (uint9) data;
+    tmp = tmp & 0xFF;
+    isZero_ = (tmp == 0);
     isNeg_ = tmp & 0x80;
     RVal_ = tmp;
     return this;
@@ -101,10 +123,8 @@ struct Reg {
 
   auto operator &=(const uint8 num) {
     RVal_ = RVal_ & num;
-    if(RVal_ == 0)
-      isZero_ = true;
-    if(RVal_ & 0x80)
-      isNeg_ = true;
+    isZero_ = RVal_ == 0;
+    isNeg_ = (RVal_ & 0x80);
     return this;
   }
 
@@ -113,10 +133,8 @@ struct Reg {
   }
 
   auto operator=(const uint8 num) {
-    if(num == 0)
-      isZero_ = true;
-    if(num & 0x80)
-      isNeg_ = true;
+    isZero_ = (num == 0);
+    isNeg_ = num & 0x80;
     RVal_ = static_cast<uint9>(num);
   }
 
@@ -229,6 +247,20 @@ struct WriteBackCont {
     return this;
   }
 
+  auto operator -=(const std::pair<uint8,uint8>dataCarryPair){
+    if(ptr != nullptr) {
+      *ptr -= dataCarryPair;
+    }
+    return this;
+  }
+
+  auto operator -=(int dec){
+    if(ptr != nullptr) {
+      *ptr -= dec;
+    }
+    return this;
+  }
+
   auto operator =(const uint8 data) {
     if(ptr != nullptr) {
       *ptr = data;
@@ -316,9 +348,9 @@ protected:
       ABS,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, ACC,  IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX
   };
 
@@ -327,9 +359,9 @@ protected:
       SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP, SREG,  AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, AREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP,  YREG,  AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, AREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       YREG, AREG, XREG,XREG,YREG, AREG, XREG,XREG,YREG,AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, YREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, YREG, AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, XREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
   };
 

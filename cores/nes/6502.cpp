@@ -75,6 +75,8 @@ auto CPU_6502::dataFetch() -> uint8 {
   switch (addressingMode) {
     break; case IMPL: return 0;//there's no real fetch here afaik
     break; case ACC: return regs_.A_; //there's no real fetch here afaik
+    break; case YDATA: return regs_.Y_; //there's no real fetch here afaik
+    break; case XDATA: return regs_.X_; //there's no real fetch here afaik
     break; case IMM: data = ram_->load( regs_.PC_ + 1 );
     break; case ZP: data = ram_->load(ramToAddress(ram_, regs_.PC_+1));
     break; case ZPX: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_));
@@ -108,7 +110,7 @@ auto CPU_6502::incrementPC() -> void {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   std::byte data;
   switch (addressingMode) {
-    break; case IMPL: case ACC: regs_.PC_ = regs_.PC_ + 1;
+    break; case IMPL: case XDATA: case YDATA: case ACC: regs_.PC_ = regs_.PC_ + 1;
     break; case IMM: case ZP: case ZPX: case ZPY: case REL: case INDX: case INDY: regs_.PC_ = regs_.PC_ + 2;
     break; case ABS: case ABSX : case ABSY: case IND: regs_.PC_ = regs_.PC_ + 3;
     break; default: throw( "This is wrong!" );
