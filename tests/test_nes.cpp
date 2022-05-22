@@ -115,12 +115,40 @@ auto test_nes_basic_asm() -> bool {
     "INX\n"
     "INY\n"
   );
-
   write_ram_map(cpu,ram_data);
   cpu.setPC(0);
   cpu.runProgram(4); // That's 3 bytes for INX INX and INY
   cstate.X.reset(new uint8(3));
   cstate.Y.reset(new uint8(1));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  // Write 0x20 to A then store it in $33 then load it in Y
+  ram_data = nesAs.assemble(
+    "ADC #20\n"
+    "STA $33\n"
+    "LDY $33\n"
+  );
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(6); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x20));
+  cstate.Y.reset(new uint8(0x20));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+     "ADC #FF\n"
+     "ADC #01\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(4); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x00));
+  cstate.P.reset(new uint8(0x03));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();

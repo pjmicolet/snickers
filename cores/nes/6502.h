@@ -89,7 +89,7 @@ struct Reg {
   // It's the only way I can easily do overflow detection
   auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
     uint9 tmp = RVal_ + (uint9) dataCarryPair.first + (uint9) dataCarryPair.second;
-    carry_ = (tmp&0x100 == 0x100);
+    carry_ = (tmp&0x100);
     tmp = tmp & 0xFF;
     isZero_ = (tmp == 0);
     if((RVal_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
@@ -374,21 +374,33 @@ struct CPU_6502 {
     bool theSame = true;
     if(cstate.A.get()) {
       theSame &= (*(cstate.A) == (uint8)regs_.A_);
+      if(!theSame)
+        std::cout << "Mismatch A " << *(cstate.A) << " " << regs_.A_ << "\n";
     }
     if(cstate.X.get()) {
       theSame &= (*(cstate.X) == (uint8)regs_.X_);
+      if(!theSame)
+        std::cout << "Mismatch X " << *(cstate.X) << " " << regs_.X_ << "\n";
     }
     if(cstate.Y.get()) {
       theSame &= (*(cstate.Y) == (uint8)regs_.Y_);
+      if(!theSame)
+        std::cout << "Mismatch Y " << *(cstate.Y) << " " << regs_.Y_ << "\n";
     }
     if(cstate.S.get()) {
       theSame &= (*(cstate.S) == (uint8)regs_.S_);
+      if(!theSame)
+        std::cout << "Mismatch S " << *(cstate.S) << " " << regs_.S_ << "\n";
     }
     if(cstate.P.get()) {
       theSame &= (*(cstate.P) == regs_.P_.toUint8());
+      if(!theSame)
+        std::cout << "Mismatch P " << *(cstate.P) << " " << regs_.P_ << "\n";
     }
     if(cstate.PC.get()) {
       theSame &= (*(cstate.PC) == regs_.PC_);
+      if(!theSame)
+        std::cout << "Mismatch PC " << *(cstate.PC) << " " << regs_.PC_ << "\n";
     }
     return theSame;
   }
