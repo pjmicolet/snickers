@@ -55,6 +55,11 @@ struct StatusReg {
     return status_.to_string();
   }
 
+  //Absolute abomination
+  auto toUint8() -> uint8 {
+    return static_cast<uint8>(static_cast<int>(status_.to_ulong()));
+  }
+
   private:
     std::bitset<8> status_;
 };
@@ -324,6 +329,32 @@ struct WriteBackCont {
 
 class Instruction;
 
+struct CPU_State {
+  CPU_State() {
+    A = std::unique_ptr<uint8>();
+    X = std::unique_ptr<uint8>();
+    Y = std::unique_ptr<uint8>();
+    S = std::unique_ptr<uint8>();
+    P = std::unique_ptr<uint8>();
+    PC = std::unique_ptr<uint16>();
+  }
+
+  auto reset() -> void {
+    A.reset(nullptr);
+    X.reset(nullptr);
+    Y.reset(nullptr);
+    S.reset(nullptr);
+    P.reset(nullptr);
+    PC.reset(nullptr);
+  }
+  std::unique_ptr<uint8> A;
+  std::unique_ptr<uint8> X;
+  std::unique_ptr<uint8> Y;
+  std::unique_ptr<uint8> S;
+  std::unique_ptr<uint8> P;
+  std::unique_ptr<uint16> PC;
+};
+
 struct CPU_6502 {
   CPU_6502();
 
@@ -336,6 +367,30 @@ struct CPU_6502 {
   auto runProgram(size_t until) -> void;
   auto clear() -> void {
     regs_.clear();
+    ram_->clear();
+  }
+
+  auto operator==(const CPU_State& cstate) -> bool {
+    bool theSame = true;
+    if(cstate.A.get()) {
+      theSame &= (*(cstate.A) == (uint8)regs_.A_);
+    }
+    if(cstate.X.get()) {
+      theSame &= (*(cstate.X) == (uint8)regs_.X_);
+    }
+    if(cstate.Y.get()) {
+      theSame &= (*(cstate.Y) == (uint8)regs_.Y_);
+    }
+    if(cstate.S.get()) {
+      theSame &= (*(cstate.S) == (uint8)regs_.S_);
+    }
+    if(cstate.P.get()) {
+      theSame &= (*(cstate.P) == regs_.P_.toUint8());
+    }
+    if(cstate.PC.get()) {
+      theSame &= (*(cstate.PC) == regs_.PC_);
+    }
+    return theSame;
   }
 
 protected:

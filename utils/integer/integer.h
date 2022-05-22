@@ -36,6 +36,8 @@ public:
     value_ &= bitmask_;
   }
 
+  constexpr ~Number() {};
+
   // Don't know if the no discard makes any sense here but don't convert
   // something and do nothing with it !
   [[nodiscard]] constexpr operator stored_type() const noexcept { return value_ & bitmask_; }

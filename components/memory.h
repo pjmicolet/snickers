@@ -138,6 +138,15 @@ public:
     }
   }
 
+  //Clear the ram (set back to 0)
+  auto clear() -> void {
+    for(auto& ramBank : ram_) {\
+      for(unsigned int i =0; i < ramBank.size_; i++) {
+        ramBank[i] = std::byte{0};
+      }
+    }
+  }
+
   // The main loading function to implement in the specific core memory
   [[nodiscard]] virtual auto load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte & = 0;
   virtual auto store(const unsigned int index, const std::byte data) noexcept(DONT_THROW) -> void = 0;

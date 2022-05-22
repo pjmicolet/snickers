@@ -93,14 +93,38 @@ auto test_nes_data_fetch() -> bool {
   return passed;
 }
 
-auto test_nes_execute() -> bool {
+
+auto test_nes_basic_asm() -> bool {
   bool passed = true;
   CPU_6502 cpu{};
   NesAssembler nesAs{};
+
   auto ram_data = nesAs.assemble("ADC #20");
   write_ram_map(cpu,ram_data);
   cpu.setPC(0);
   cpu.execute();
+  CPU_State cstate;
+  cstate.A.reset(new uint8(0x20));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+    "INX\n"
+    "INX\n"
+    "INX\n"
+    "INY\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(4); // That's 3 bytes for INX INX and INY
+  cstate.X.reset(new uint8(3));
+  cstate.Y.reset(new uint8(1));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
   return passed;
 }
 
@@ -108,6 +132,6 @@ auto test_nes() -> bool {
   bool passed = true;
   RUN_TEST(test_nes_ram_basic());
   RUN_TEST(test_nes_data_fetch());
-  RUN_TEST(test_nes_execute());
+  RUN_TEST(test_nes_basic_asm());
   return passed;
 }
