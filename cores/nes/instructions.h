@@ -54,6 +54,7 @@ protected:
   CPU_6502& cpu_;
   WriteBackCont& wbc_;
   Registers& regs_;
+  bool& branchTaken_;
   const std::string name_;
   uint16 data_;
 private:

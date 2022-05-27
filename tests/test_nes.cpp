@@ -93,7 +93,6 @@ auto test_nes_data_fetch() -> bool {
   return passed;
 }
 
-
 auto test_nes_basic_asm() -> bool {
   bool passed = true;
   CPU_6502 cpu{};
@@ -149,6 +148,61 @@ auto test_nes_basic_asm() -> bool {
   cpu.runProgram(4); // That's 3 bytes for INX INX and INY
   cstate.A.reset(new uint8(0x00));
   cstate.P.reset(new uint8(0x03));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "ADC #12\n" //0
+      "STA $45\n" //2
+      "LDA #00\n" //4
+      "CMP $45\n" //6
+      "BEQ 04\n" //8
+      "LDA #23\n" //10
+      "ADC #01\n" //12
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(13); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x24));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "ADC #12\n" //0
+      "STA $45\n" //2
+      "LDA #12\n" //4
+      "CMP $45\n" //6 this sets the carry flag as well
+      "BEQ 04\n" //8
+      "LDA #23\n" //10
+      "ADC #01\n" //12
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(13); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x14));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "ADC #12\n" //0
+      "STA $45\n" //2
+      "LDA #12\n" //4
+      "CMP $45\n" //6 this sets the carry flag as well
+      "CLC\n" //Clear carry
+      "BEQ 04\n" //8
+      "LDA #23\n" //10
+      "ADC #01\n" //12
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(14); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x13));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();

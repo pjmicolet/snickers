@@ -46,6 +46,16 @@ struct StatusReg {
     return status_[0];
   }
 
+  auto isZeroSet() -> bool {
+    return status_[1];
+  }
+  auto isNegSet() -> bool {
+    return status_[7];
+  }
+  auto isOverflowSet() -> bool {
+    return status_[6];
+  }
+
   friend std::ostream& operator<<(std::ostream& os, const StatusReg& regs) {
     os << regs.status_.to_string();
     return os;
@@ -408,6 +418,7 @@ struct CPU_6502 {
 protected:
   Registers regs_;
   WriteBackCont wbc_;
+  bool branchTaken_;
 
   // clang-format off
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {
