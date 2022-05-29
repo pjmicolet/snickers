@@ -207,6 +207,72 @@ auto test_nes_basic_asm() -> bool {
   cstate.reset();
   cpu.clear();
 
+  //Baby for loop, increase A to 0x10
+  ram_data = nesAs.assemble(
+      "LDY #00\n" //0
+      "LDX #10\n"
+      "CPX #00\n"
+      "INY \n"
+      "DEX \n"
+      "BNE FC" //jump back 4
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(10); // That's 3 bytes for INX INX and INY
+  cstate.Y.reset(new uint8(0x10));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "LDA #12\n" //0
+      "ORA #01\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(4); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x13));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  //Basic ASL test
+  ram_data = nesAs.assemble(
+      "LDA #01\n" //0
+      "ASL A\n"
+      "CMP #02\n"
+      "BEQ 03\n"
+      "INX\n"
+      "INY\n"
+      "ASL A\n"
+      "CMP #04\n"
+      "BEQ 03\n"
+      "INX\n"
+      "INY\n"
+      "ASL A\n"
+      "CMP #08\n"
+      "BEQ 03\n"
+      "INX\n"
+      "INY\n"
+      "ASL A\n"
+      "CMP #10\n"
+      "BEQ 03\n"
+      "INX\n"
+      "INY\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(31); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x10));
+  cstate.Y.reset(new uint8(0x4));
+  cstate.X.reset(new uint8(0x0));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
   return passed;
 }
 

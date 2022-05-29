@@ -75,6 +75,18 @@ public:
     return res;
   }
 
+  auto operator<<=(int val) -> Number<is_signed, n> {
+    Number<is_signed, n> res;
+    res.value_ = value_ << val;
+    return res;
+  }
+
+  auto operator>>=(int val) -> Number<is_signed, n> {
+    Number<is_signed, n> res;
+    res.value_ = value_ << val;
+    return res;
+  }
+
   auto operator++() -> Number<is_signed, n> & {
     ++value_;
     return *this;

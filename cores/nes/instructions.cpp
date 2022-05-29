@@ -33,8 +33,10 @@ void And::execute() {
 void Arr::execute() {}
 
 void Asl::execute() {
-  regs_.P_.setCarry(data_ & 0x80);
   wbc_ = (data_ << 1);
+  regs_.P_.setCarry(wbc_.hasCarry());
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
 }
 
 void Axs::execute() {}
@@ -53,39 +55,39 @@ void Bcs::execute() {
 void Beq::execute() {
   if(regs_.P_.isZeroSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
 void Bit::execute() {}
 void Bmi::execute() {
   if(regs_.P_.isNegSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
 void Bne::execute() {
   if(!regs_.P_.isZeroSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
 void Bpl::execute() {
   if(!regs_.P_.isNegSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
 void Brk::execute() {}
 void Bvc::execute() {
   if(!regs_.P_.isOverflowSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
 void Bvs::execute() {
   if(regs_.P_.isOverflowSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
 void Clc::execute() {
@@ -186,7 +188,13 @@ void Ldy::execute() {
 }
 void Lsr::execute() {}
 void Nop::execute() {}
-void Ora::execute() {}
+
+void Ora::execute() {
+  wbc_ |= static_cast<uint8>(data_);
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}
+
 void Pha::execute() {}
 void Php::execute() {}
 void Pla::execute() {}
@@ -197,6 +205,7 @@ void Rol::execute() {}
 void Ror::execute() {}
 void Rti::execute() {}
 void Rts::execute() {}
+
 void Sbc::execute() {
   uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
   wbc_ -= {data_,c};
@@ -205,6 +214,7 @@ void Sbc::execute() {
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setOverflow(wbc_.hasOverflown());
 }
+
 void Sax::execute() {}
 void Sec::execute() {
   regs_.P_.setCarry(true);
