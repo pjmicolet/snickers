@@ -58,7 +58,13 @@ void Beq::execute() {
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
   }
 }
-void Bit::execute() {}
+void Bit::execute() {
+  uint8 areg = static_cast<uint8>(regs_.A_);
+  uint8 res = areg & data_;
+  regs_.P_.setZero(res==0);
+  regs_.P_.setOverflow(data_&0x40);
+  regs_.P_.setNegative(data_&0x80);
+}
 void Bmi::execute() {
   if(regs_.P_.isNegSet()) {
     branchTaken_ = true;
@@ -146,7 +152,11 @@ void Dey::execute() {
   regs_.P_.setZero(wbc_.isZero());
   regs_.P_.setNegative(wbc_.isNegative());
 }
-void Eor::execute() {}
+void Eor::execute() {
+  wbc_ ^= data_;
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setNegative(wbc_.isNegative());
+}
 void Inc::execute() {
   wbc_ = (data_ + 1);
   regs_.P_.setZero(wbc_.isZero());

@@ -159,6 +159,12 @@ struct Reg {
     return this;
   }
 
+  auto operator ^=(const uint8 num) {
+    RVal_ = (RVal_ ^ num) & 0xFF;
+    isZero_ = RVal_ == 0;
+    isNeg_ = RVal_ & 0x80;
+  }
+
   auto operator=(const uint8 num) {
     isZero_ = (num == 0);
     isNeg_ = num & 0x80;
@@ -317,6 +323,14 @@ struct WriteBackCont {
   auto operator <<=(const uint8 data) {
     if(ptr != nullptr) {
       *ptr <<= data;
+    } else {
+    }
+    return *this;
+  }
+
+  auto operator ^=(const uint8 data) {
+    if(ptr != nullptr) {
+      *ptr ^= data;
     } else {
     }
     return *this;
