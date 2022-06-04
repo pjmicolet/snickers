@@ -12,6 +12,10 @@ auto Instruction::runInstruction() -> void {
       debug();
 }
 
+auto Instruction::popStack() -> uint8 {
+  return cpu_.popStack();
+}
+
 void Adc::execute() {
   uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
   wbc_ += {data_,c};
@@ -205,14 +209,34 @@ void Ora::execute() {
   regs_.P_.setZero(wbc_.isZero());
 }
 
-void Pha::execute() {}
-void Php::execute() {}
-void Pla::execute() {}
-void Plp::execute() {}
+void Pha::execute() {
+  wbc_ = data_;
+}
+void Php::execute() {
+  wbc_ = data_;
+}
+void Pla::execute() {
+  wbc_ = popStack();
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}
+void Plp::execute() {
+  wbc_ = popStack();
+}
 void Rla::execute() {}
 void Rra::execute() {}
-void Rol::execute() {}
-void Ror::execute() {}
+void Rol::execute() {
+  wbc_.rol(regs_.P_.isCarrySet());
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setCarry(wbc_.hasCarry());
+}
+void Ror::execute() {
+  wbc_.ror(regs_.P_.isCarrySet());
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+  regs_.P_.setCarry(wbc_.hasCarry());
+}
 void Rti::execute() {}
 void Rts::execute() {}
 

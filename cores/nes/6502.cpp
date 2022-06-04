@@ -98,7 +98,7 @@ auto CPU_6502::setWriteBackCont() -> void {
   auto destMode = resolveDestMode( regs_.PC_ );
   switch (destMode) {
     break; case AREG:  wbc_.setReg(regs_.A_);
-    break; case SREG:  wbc_.setReg(regs_.S_);
+    break; case SREG:  wbc_.setStack(regs_.S_);
     break; case PCREG: wbc_.setReg(regs_.PC_);
     break; case PREG:  wbc_.setReg(regs_.P_);
     break; case YREG:  wbc_.setReg(regs_.Y_);

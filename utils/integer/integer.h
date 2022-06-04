@@ -75,25 +75,51 @@ public:
     return res;
   }
 
-  auto operator<<=(int val) -> Number<is_signed, n> {
-    Number<is_signed, n> res;
-    res.value_ = value_ << val;
-    return res;
+  auto operator<<=(int val) {
+    this->value_ <<= val;
+    this->value_ &= bitmask_;
+    return this;
   }
 
-  auto operator>>=(int val) -> Number<is_signed, n> {
-    Number<is_signed, n> res;
-    res.value_ = value_ << val;
-    return res;
+  auto operator&=(int val) {
+    this->value_ &= val;
+    this->value_ &= bitmask_;
+    return this;
+  }
+
+  auto operator>>=(int val) {
+    this->value_ >>= val;
+    this->value_ &= bitmask_;
+    return this;
+  }
+
+  auto operator-=(int val) {
+    this->value_ -= val;
+    this->value_ &= bitmask_;
+    return this;
+  }
+
+  auto operator+=(int val) {
+    this->value_ += val;
+    this->value_ &= bitmask_;
+    return this;
+  }
+
+  auto operator|=(int val) -> Number<is_signed, n> {
+    this->value_ |= val;
+    this->value_ &= bitmask_;
+    return *this;
   }
 
   auto operator++() -> Number<is_signed, n> & {
     ++value_;
+    this->value_ &= bitmask_;
     return *this;
   }
 
   auto operator--() -> Number<is_signed, n> & {
     --value_;
+    this->value_ &= bitmask_;
     return *this;
   }
 

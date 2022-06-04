@@ -42,6 +42,8 @@ public:
 public:
   void runInstruction();
 
+protected:
+  auto popStack() -> uint8;
 private:
   virtual void execute() {
     std::cerr << "Instruction " << name_ << " has no execute implemented.\n";

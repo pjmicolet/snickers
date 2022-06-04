@@ -171,6 +171,27 @@ struct Reg {
     RVal_ = static_cast<uint9>(num);
   }
 
+  auto rol(const bool carry) {
+    carry_ = RVal_ & 0x80;
+    RVal_ <<= 1;
+    RVal_ &= 0xFF;
+    RVal_ |= carry;
+    isZero_ = (RVal_ == 0);
+    isNeg_ = RVal_ & 0x80;
+    return this;
+  }
+
+  auto ror(const bool carry) {
+    carry_ = RVal_ & 0x1;
+    RVal_ >>= 1;
+    RVal_ &= 0xFF;
+    if(carry)
+      RVal_ |= 0x80;
+    isZero_ = (RVal_ == 0);
+    isNeg_ = RVal_ & 0x80;
+    return this;
+  }
+
   friend std::ostream& operator<<(std::ostream& os, const Reg& regs) {
     os << regs.RVal_;
     return os;
@@ -181,7 +202,11 @@ struct Reg {
   }
 
   operator uint8() const {
-    return RVal_;
+    return static_cast<uint8>(RVal_);
+  }
+
+  operator size_t() const {
+    return static_cast<size_t>(static_cast<uint8>(RVal_));
   }
 
   operator uint16() const {
@@ -205,11 +230,11 @@ struct Reg {
 };
 
 struct Registers {
-  Registers() : A_(0), X_(0), Y_(0), S_(0), P_(), PC_(0) {}
+  Registers() : A_(0), X_(0), Y_(0), S_(0x1FF), P_(), PC_(0) {}
   Reg A_;
   Reg X_;
   Reg Y_;
-  Reg S_;
+  uint9 S_;
   StatusReg P_;
   uint16 PC_;
   friend std::ostream& operator<<(std::ostream& os, const Registers& regs) {
@@ -218,7 +243,7 @@ struct Registers {
   }
 
   auto clear () -> void {
-    A_ = 0; X_ = 0; Y_ = 0; S_ = 0; P_.clear(); PC_ = 0;
+    A_ = 0; X_ = 0; Y_ = 0; S_ = 0x1FF; P_.clear(); PC_ = 0;
   }
 };
 
@@ -260,6 +285,7 @@ struct WriteBackCont {
   auto reset() -> void {
     ptr = nullptr;
     sptr = nullptr;
+    stptr = nullptr;
     pcptr = nullptr;
     memAddr_ = 0;
     carry_ = false;
@@ -271,8 +297,9 @@ struct WriteBackCont {
   auto setReg(Reg& regptr) -> void { ptr = &regptr; }
   auto setReg(StatusReg& regptr) -> void { unsetReg(); sptr = &regptr; }
   auto setReg(uint16& ptr) -> void { unsetReg(); pcptr = &ptr; }
-  auto unsetReg() -> void { ptr = nullptr; }
+  auto unsetReg() -> void { ptr = nullptr; sptr = nullptr; stptr = nullptr; }
   auto setMem(uint16 memAddress) -> void { unsetReg(); memAddr_ = memAddress; }
+  auto setStack(uint9& ptrAddr) -> void { unsetReg(); stptr = &ptrAddr; }
   auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
     if(ptr != nullptr) {
       *ptr += dataCarryPair;
@@ -295,8 +322,11 @@ struct WriteBackCont {
   }
 
   auto operator =(const uint8 data) {
-    if(ptr != nullptr) {
-      *ptr = data;
+    if( stptr != nullptr ) {
+      ram_->store(static_cast<size_t>(*stptr),std::byte{(uint8_t)data});
+      *stptr-= 1;
+    } else if(ptr != nullptr) {
+        *ptr = data;
     } else {
       if(data == 0)
         isZero_ = true;
@@ -336,6 +366,24 @@ struct WriteBackCont {
     return *this;
   }
 
+  auto rol(const bool carry) {
+    if(ptr!= nullptr) {
+      ptr->rol(carry);
+    } else {
+
+    }
+    return *this;
+  }
+
+  auto ror(const bool carry) {
+    if(ptr!= nullptr) {
+      ptr->ror(carry);
+    } else {
+
+    }
+    return *this;
+  }
+
   // I'll eventually regret this
   auto hasCarry() -> bool {
     if(ptr != nullptr)
@@ -362,12 +410,14 @@ struct WriteBackCont {
     std::shared_ptr<NES_RAM> ram_;
     uint16_t memAddr_ = 0;
     Reg* ptr = nullptr;
+    uint9* stptr = nullptr;
     StatusReg* sptr = nullptr;
     uint16* pcptr = nullptr;
     bool carry_ = false;
     bool overflow_ = false;
     bool isZero_ = false;
     bool isNeg_ = false;
+    bool isStack_ = false;
 };
 
 class Instruction;
@@ -377,7 +427,7 @@ struct CPU_State {
     A = std::unique_ptr<uint8>();
     X = std::unique_ptr<uint8>();
     Y = std::unique_ptr<uint8>();
-    S = std::unique_ptr<uint8>();
+    S = std::unique_ptr<uint9>();
     P = std::unique_ptr<uint8>();
     PC = std::unique_ptr<uint16>();
   }
@@ -393,7 +443,7 @@ struct CPU_State {
   std::unique_ptr<uint8> A;
   std::unique_ptr<uint8> X;
   std::unique_ptr<uint8> Y;
-  std::unique_ptr<uint8> S;
+  std::unique_ptr<uint9> S;
   std::unique_ptr<uint8> P;
   std::unique_ptr<uint16> PC;
 };
@@ -431,7 +481,7 @@ struct CPU_6502 {
         std::cout << "Mismatch Y " << *(cstate.Y) << " " << regs_.Y_ << "\n";
     }
     if(cstate.S.get()) {
-      theSame &= (*(cstate.S) == (uint8)regs_.S_);
+      theSame &= (*(cstate.S) == (uint9)regs_.S_);
       if(!theSame)
         std::cout << "Mismatch S " << *(cstate.S) << " " << regs_.S_ << "\n";
     }
@@ -457,7 +507,7 @@ protected:
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       ABS,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, ACC, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, ACC,  IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
@@ -469,7 +519,7 @@ protected:
       SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, AREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP,  YREG,  AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, AREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       YREG, AREG, XREG,XREG,YREG, AREG, XREG,XREG,YREG,AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, YREG, AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
@@ -514,4 +564,9 @@ public:
   auto setPC(uint16 pc ) -> void { regs_.PC_ = pc; }
   auto setX(uint8 x ) -> void { regs_.X_ = x; }
   auto setY(uint8 y ) -> void { regs_.Y_ = y; }
+protected:
+  auto popStack() -> uint8 {
+    regs_.S_ += 1;
+    return static_cast<uint8>(std::to_integer<uint8_t>(ram_->load(static_cast<size_t>(regs_.S_))));
+  }
 };

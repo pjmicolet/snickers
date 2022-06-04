@@ -317,6 +317,77 @@ auto test_nes_basic_asm() -> bool {
   cstate.reset();
   cpu.clear();
 
+  ram_data = nesAs.assemble(
+      "LDA #01\n"
+      "ROL A\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(4); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x2));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "LDA #01\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"//Sets it to 0 but now carry is set
+      "ROL A\n"//Now has one
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(20); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x1));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "LDA #01\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"
+      "ROL A\n"//Sets it to 0 but now carry is set
+      "ROR A\n"//Now has 0x80
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(20); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x80));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "LDA #01\n"
+      "PHA\n"
+      "LDA #03\n"
+      "PLA\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(6); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x1));
+  cstate.S.reset(new uint9(0x1FF));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
   return passed;
 }
 
