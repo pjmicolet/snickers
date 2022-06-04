@@ -407,6 +407,36 @@ auto test_nes_basic_asm() -> bool {
   cstate.reset();
   cpu.clear();
 
+  ram_data = nesAs.assemble(
+      "LDA #01\n"
+      "ASL A\n"
+      "ASL A\n"
+      "ASL A\n"
+      "LSR A\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(0xA); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x4));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
+  ram_data = nesAs.assemble(
+      "LDA #01\n"
+      "LSR A\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(0xA); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x0));
+  cstate.P.reset(new uint8(0x3)); // carry is set
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
   return passed;
 }
 
