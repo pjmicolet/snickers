@@ -320,6 +320,8 @@ struct WriteBackCont {
   auto operator +=(const std::pair<uint8,uint8>dataCarryPair){
     if(ptr != nullptr) {
       *ptr += dataCarryPair;
+    } else {
+      std::cout << "Shouldnt be here\n";
     }
     return this;
   }
@@ -379,6 +381,12 @@ struct WriteBackCont {
     if(ptr != nullptr) {
       *ptr >>= data;
     } else {
+      auto init = mload();
+      carry_ = init & 0x1;
+      init >>= 1;
+      isZero_ = init == 0;
+      isNeg_ = (init & 0x80);
+      mstore(init);
     }
     return *this;
   }
@@ -387,6 +395,7 @@ struct WriteBackCont {
     if(ptr != nullptr) {
       *ptr ^= data;
     } else {
+      std::cout << "Shouldn't be here\n";
     }
     return *this;
   }
@@ -395,7 +404,14 @@ struct WriteBackCont {
     if(ptr!= nullptr) {
       ptr->rol(carry);
     } else {
-
+      auto init = mload();
+      carry_ = init & 0x80;
+      init <<= 1;
+      init &= 0xFF;
+      init |= carry;
+      isZero_ = (init == 0);
+      isNeg_ = init & 0x80;
+      mstore(init);
     }
     return *this;
   }
@@ -404,7 +420,15 @@ struct WriteBackCont {
     if(ptr!= nullptr) {
       ptr->ror(carry);
     } else {
-
+      auto init = mload();
+      carry_ = init & 0x1;
+      init >>= 1;
+      init &= 0xFF;
+      if(carry)
+        init |= 0x80;
+      isZero_ = (init == 0);
+      isNeg_ = init & 0x80;
+      mstore(init);
     }
     return *this;
   }
@@ -443,6 +467,13 @@ struct WriteBackCont {
     bool isZero_ = false;
     bool isNeg_ = false;
     bool isStack_ = false;
+  private:
+    auto mload() -> uint9 {
+      return static_cast<uint9>(std::to_integer<uint8_t>(ram_->load(static_cast<size_t>(memAddr_))));
+    };
+    auto mstore(uint9 data) -> void {
+      ram_->store(static_cast<size_t>(memAddr_),std::byte{static_cast<uint8_t>(data)});
+    };
 };
 
 class Instruction;
