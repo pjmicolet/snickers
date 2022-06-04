@@ -388,6 +388,25 @@ auto test_nes_basic_asm() -> bool {
   cstate.reset();
   cpu.clear();
 
+  ram_data = nesAs.assemble(
+      "JSR $000A\n"
+      "LDA #4F\n"
+      "NOP\n"
+      "NOP\n"
+      "NOP\n"
+      "NOP\n"
+      "NOP\n"
+      "RTS\n"
+  );
+
+  write_ram_map(cpu,ram_data);
+  cpu.setPC(0);
+  cpu.runProgram(0xB); // That's 3 bytes for INX INX and INY
+  cstate.A.reset(new uint8(0x4F));
+  passed = cpu == cstate;
+  cstate.reset();
+  cpu.clear();
+
   return passed;
 }
 

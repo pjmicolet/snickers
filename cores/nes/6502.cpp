@@ -70,7 +70,7 @@ auto CPU_6502::execute() -> void {
 // uses and then returns the data that the instruction requires.
 // Note that instructions that use indirect address aren't here as that just returns
 // an address and not data.
-auto CPU_6502::dataFetch() -> uint8 {
+auto CPU_6502::dataFetch() -> uint16 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   std::byte data;
   switch (addressingMode) {
@@ -84,13 +84,14 @@ auto CPU_6502::dataFetch() -> uint8 {
     break; case ZPY: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_));
     break; case REL: data = ram_->load(regs_.PC_+1);
     break; case ABS: data = ram_->load(twoByteAddress(ram_, regs_.PC_));
+    break; case ABSADDR: return twoByteAddress(ram_, regs_.PC_);
     break; case ABSX: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.X_));
     break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.Y_));
     break; case INDX: data = ram_->load(indirectX(ram_, regs_.PC_,regs_.X_));
     break; case INDY: data = ram_->load(indirectY(ram_, regs_.PC_,regs_.Y_));
     break; default: throw( "This is wrong!" );
   };
-  return std::to_integer<uint8_t>(data);
+  return std::to_integer<uint16_t>(data);
 }
 
 auto CPU_6502::setWriteBackCont() -> void {

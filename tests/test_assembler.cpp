@@ -36,8 +36,8 @@ auto test_nes_asm() -> bool {
   BYTE_EQ(vec[0], std::byte(0x65));
   BYTE_EQ(vec[1], std::byte(0x12));
   BYTE_EQ(vec[2], std::byte(0x6D));
-  BYTE_EQ(vec[3], std::byte(0x12));
-  BYTE_EQ(vec[4], std::byte(0x34));
+  BYTE_EQ(vec[3], std::byte(0x34)); // Watch out fo the stupid endiannes
+  BYTE_EQ(vec[4], std::byte(0x12));
   return passed;
 }
 

@@ -16,6 +16,14 @@ auto Instruction::popStack() -> uint8 {
   return cpu_.popStack();
 }
 
+auto Instruction::pushStack(uint16 data) -> void {
+  return cpu_.pushStack(data);
+}
+
+auto Instruction::popPCFromStack() -> uint16 {
+  return cpu_.popPCFromStack();
+}
+
 void Adc::execute() {
   uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
   wbc_ += {data_,c};
@@ -181,7 +189,11 @@ void Jmp::execute() {
   branchTaken_ = true;
   regs_.PC_ = data_;
 }
-void Jsr::execute() {}
+void Jsr::execute() {
+  pushStack(regs_.PC_+2);
+  regs_.PC_ = data_;
+  branchTaken_ = true;
+}
 void Kil::execute() {}
 void Las::execute() {}
 void Lax::execute() {}
@@ -238,7 +250,13 @@ void Ror::execute() {
   regs_.P_.setCarry(wbc_.hasCarry());
 }
 void Rti::execute() {}
-void Rts::execute() {}
+
+// Note that you don't mark the branch as taken here
+// this is because we push in PC + 2 instead of PC + 3 in JSR
+// and so we need the PC to be incremented by 1 afterwards
+void Rts::execute() {
+  regs_.PC_ = popPCFromStack();
+}
 
 void Sbc::execute() {
   uint8 c = regs_.P_.isCarrySet() ? 1 : 0;

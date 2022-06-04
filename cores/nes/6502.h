@@ -256,6 +256,7 @@ enum NES_ADDRESS_MODE {
   ZPY,  // zero page y
   REL,  // relative
   ABS,  // absolute
+  ABSADDR,  // absolute address for jmp
   ABSX, // absolute x
   ABSY, // absolute y
   IND,  // indirect
@@ -452,7 +453,7 @@ struct CPU_6502 {
   CPU_6502();
 
   std::shared_ptr<NES_RAM> ram_;
-  auto dataFetch() -> uint8;
+  auto dataFetch() -> uint16;
   auto setWriteBackCont() -> void;
   auto execute() -> void;
   auto printDebug() -> void;
@@ -506,7 +507,7 @@ protected:
   // clang-format off
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      ABS,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      ABSADDR,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, ACC, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
@@ -568,5 +569,26 @@ protected:
   auto popStack() -> uint8 {
     regs_.S_ += 1;
     return static_cast<uint8>(std::to_integer<uint8_t>(ram_->load(static_cast<size_t>(regs_.S_))));
+  }
+
+  auto pushStack(uint16 data) -> void {
+    uint8 highByte = (data & 0xFF00) >> 8;
+    uint8 lowByte = (data & 0xFF);
+    pushStack(highByte);
+    pushStack(lowByte);
+  }
+
+  auto popPCFromStack() -> uint16 {
+    uint8 lowByte = popStack();
+    uint8 highByte = popStack();
+    uint16 pc = highByte;
+    pc <<= 8;
+    pc |= lowByte;
+    return pc;
+  }
+
+  inline auto pushStack(uint8 data) -> void {
+    ram_->store(static_cast<size_t>(regs_.S_),std::byte{(uint8_t)data});
+    regs_.S_ -= 1;
   }
 };

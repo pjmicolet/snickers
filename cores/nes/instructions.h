@@ -44,6 +44,8 @@ public:
 
 protected:
   auto popStack() -> uint8;
+  auto pushStack(uint16 data) -> void;
+  auto popPCFromStack() -> uint16;
 private:
   virtual void execute() {
     std::cerr << "Instruction " << name_ << " has no execute implemented.\n";

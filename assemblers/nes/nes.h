@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 #include <charconv>
+#include <ranges>
 
 #define MATCH_INST(instname,num) \
   if (match(instname,inst)) \
@@ -67,8 +68,8 @@ struct OpTable {
           assembly.push_back(std::byte(stringToInt(inst)));
         }
         break; case 7: case 8: case 9: case 10: {
-          auto data = integerToByteVTrim(stringToInt(inst));
-          for(auto& datum: data)
+          auto data = integerToByteV(static_cast<uint16_t>(stringToInt(inst)));
+          for(auto& datum: data | std::views::reverse)
             assembly.push_back(datum);
         }
         break;
