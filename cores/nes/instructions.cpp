@@ -45,8 +45,9 @@ void And::execute() {
 void Arr::execute() {}
 
 void Asl::execute() {
+  bool carry = data_ & 0x80;
   wbc_ = (data_ << 1);
-  regs_.P_.setCarry(wbc_.hasCarry());
+  regs_.P_.setCarry(carry);
   regs_.P_.setZero(wbc_.isZero());
   regs_.P_.setNegative(wbc_.isNegative());
 }
@@ -212,7 +213,12 @@ void Ldy::execute() {
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
-void Lsr::execute() {}
+void Lsr::execute() {
+  wbc_ >>= 1;
+  regs_.P_.setCarry(wbc_.hasCarry());
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}
 void Nop::execute() {}
 
 void Ora::execute() {
@@ -249,7 +255,12 @@ void Ror::execute() {
   regs_.P_.setZero(wbc_.isZero());
   regs_.P_.setCarry(wbc_.hasCarry());
 }
-void Rti::execute() {}
+void Rti::execute() {
+  uint8 statusReg = popStack();
+  uint16 pc = popPCFromStack();
+  regs_.P_ = statusReg;
+  regs_.PC_ = pc;
+}
 
 // Note that you don't mark the branch as taken here
 // this is because we push in PC + 2 instead of PC + 3 in JSR

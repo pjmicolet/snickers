@@ -41,6 +41,13 @@ struct StatusReg {
   auto clear() -> void {
     status_ = 0b00000000;
   }
+  auto operator=(uint8 pset){
+    status_[0] = pset & 0x1;
+    status_[1] = pset & 0x2;
+    status_[3] = pset & 0x4;
+    status_[6] = pset & 0x10;
+    status_[7] = pset & 0x20;
+  }
 
   auto isCarrySet() -> bool {
     return status_[0];
@@ -153,6 +160,15 @@ struct Reg {
   auto operator <<=(const uint8 num) {
     carry_ = RVal_ & 0x80;
     RVal_ <<= 1;
+    RVal_ = RVal_ & 0xFF;
+    isZero_ = RVal_ == 0;
+    isNeg_ = RVal_ & 0x80;
+    return this;
+  }
+
+  auto operator >>=(const uint8 num) {
+    carry_ = RVal_ & 0x1;
+    RVal_ >>= 1;
     RVal_ = RVal_ & 0xFF;
     isZero_ = RVal_ == 0;
     isNeg_ = RVal_ & 0x80;
@@ -354,6 +370,14 @@ struct WriteBackCont {
   auto operator <<=(const uint8 data) {
     if(ptr != nullptr) {
       *ptr <<= data;
+    } else {
+    }
+    return *this;
+  }
+
+  auto operator >>=(const uint8 data) {
+    if(ptr != nullptr) {
+      *ptr >>= data;
     } else {
     }
     return *this;
