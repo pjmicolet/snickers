@@ -126,12 +126,17 @@ public:
     } else {
       int lines = 0;
       size_t tracing = 0;
+      size_t amountOfLines = tracedLines->size();
       // Finally if we have any lines we want to debug...
       for (auto &ramBank : ram_) {
         for (unsigned int i = 0; i < ramBank.size_; i++, lines++) {
-          bool trace = (int)lines == (*tracedLines)[tracing];
-          if (trace)
+          bool trace = false;
+          if(tracing < amountOfLines)
+            trace = (int)lines == (*tracedLines)[tracing];
+          if (trace) {
+            std::cout << "Tracing " << (*tracedLines)[tracing] << "\n";
             tracing++;
+          }
           ramBank.populate(i, trace);
         }
       }

@@ -1,4 +1,4 @@
-#include "../cores/snes/rom.h"
+#include "../components/rom.h"
 #include "test_utils.h"
 #include <iostream>
 

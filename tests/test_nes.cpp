@@ -2,6 +2,7 @@
 #include "../utils/assemblers/asm_utils.h"
 #include "../assemblers/nes/nes.h"
 #include "test_utils.h"
+#include "../cores/nes/nes_rom.h"
 
 auto write_ram_map(CPU_6502& cpu, std::vector<uint8_t>& bytes) -> void {
   uint16_t index = 0;
@@ -17,6 +18,18 @@ auto write_ram_map(CPU_6502& cpu, std::vector<std::byte>& bytes) -> void {
     cpu.ram_->store(index,byte);
     index++;
   }
+}
+
+auto write_ram_map(CPU_6502& cpu, std::span<std::byte> bytes, size_t offset = 0) -> void {
+  uint16_t index = 0;
+  std::cout << bytes.size() << "\n";
+  for(auto& byte: bytes) {
+    if(index + offset > 0xFFFF)
+      break;
+    cpu.ram_->store(index+offset,byte);
+    index++;
+  }
+  std::cout << std::to_integer<int>(cpu.ram_->load(0xc000)) << "\n";
 }
 
 auto test_nes_ram_basic() -> bool {
@@ -383,7 +396,7 @@ auto test_nes_basic_asm() -> bool {
   cpu.setPC(0);
   cpu.runProgram(6); // That's 3 bytes for INX INX and INY
   cstate.A.reset(new uint8(0x1));
-  cstate.S.reset(new uint9(0x1FF));
+  cstate.S.reset(new uint9(0x1FD));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();
@@ -440,10 +453,23 @@ auto test_nes_basic_asm() -> bool {
   return passed;
 }
 
+auto test_nes_mega() {
+  bool passed = true;
+  CPU_6502 cpu{};
+  NesAssembler nesAs{};
+  NesRom rom{"nestest.nes"};
+
+  write_ram_map(cpu,rom.getProgram(), 0xc000);
+  cpu.setPC(0xc000);
+  cpu.runProgram(0xFFFF);
+  return passed;
+}
+
 auto test_nes() -> bool {
   bool passed = true;
   RUN_TEST(test_nes_ram_basic());
   RUN_TEST(test_nes_data_fetch());
   RUN_TEST(test_nes_basic_asm());
+  RUN_TEST(test_nes_mega());
   return passed;
 }

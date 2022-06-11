@@ -31,3 +31,15 @@ auto Rom::load_rom(const std::filesystem::path &path) -> bool {
 
   return true;
 }
+
+auto Rom::begin() -> std::vector<std::byte>::iterator {
+  return data_.begin();
+}
+
+auto Rom::end() -> std::vector<std::byte>::iterator {
+  return data_.end();
+}
+
+auto Rom::at(size_t index) -> std::byte {
+  return data_[index];
+}

@@ -51,8 +51,8 @@ private:
     std::cerr << "Instruction " << name_ << " has no execute implemented.\n";
     std::exit(EXIT_FAILURE);
   };
-  void debug() { std::cout << name_ << " " << "\n"; };
 
+  auto debug() -> void;
 protected:
   const bool debug_;
   CPU_6502& cpu_;

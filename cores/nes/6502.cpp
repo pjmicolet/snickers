@@ -2,7 +2,7 @@
 #include <cstddef>
 
 #define INSINST(name)\
-  insts_.emplace_back(std::make_unique<name>(false,*this));
+  insts_.emplace_back(std::make_unique<name>(true,*this));
 
 CPU_6502::CPU_6502() {
     std::vector<BankInfo> banks{{0x800, 0}, {0x8, 1}, {0x18, 2}, {0x08, 3}, {0xBFE0, 4}};
@@ -10,7 +10,8 @@ CPU_6502::CPU_6502() {
     // I know there's 0x10000 addresses but technically
     // these are the only ones that are actually used;
     BanksAndSize cfg = {banks, 0xC808};
-    ram_ = std::make_shared<NES_RAM>(cfg);
+    std::vector<int> tracedLines = {0x200,0x201,0x202};
+    ram_ = std::make_shared<NES_RAM>(cfg, &tracedLines);
     wbc_ = WriteBackCont{ram_};
     branchTaken_ = false;
     bool debug = false;
@@ -46,10 +47,16 @@ inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16 {
 
 inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16 {
   auto indirectBytes = twoByteAddress(ram, PC);
-  uint16 indirectAddr = (indirectBytes & 0xFF00) | ((indirectBytes + 1) & 0x00FF);
 
-  auto lowByte = indirectBytes;
-  auto highByte = indirectAddr;
+  uint16_t highByte = 0;
+  // This is due to some bug in the 6502
+  if((indirectBytes & 0xFF ) == 0xFF) {
+    auto addr = indirectBytes & 0xFF00;
+    highByte = std::to_integer<uint16_t>(ram->load(addr));
+  }
+  else
+    highByte = std::to_integer<uint16_t>(ram->load(indirectBytes+1));
+  auto lowByte = std::to_integer<uint16_t>(ram->load(indirectBytes));
 
   return (uint16)(highByte << 8) | (uint16)lowByte;
 }
@@ -89,6 +96,7 @@ auto CPU_6502::dataFetch() -> uint16 {
     break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.Y_));
     break; case INDX: data = ram_->load(indirectX(ram_, regs_.PC_,regs_.X_));
     break; case INDY: data = ram_->load(indirectY(ram_, regs_.PC_,regs_.Y_));
+    break; case IND:  return resolveIndirectAddress(ram_, regs_.PC_, 0);
     break; default: throw( "This is wrong!" );
   };
   return std::to_integer<uint16_t>(data);

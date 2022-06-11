@@ -7,9 +7,13 @@ Instruction::Instruction(bool debug, CPU_6502& cpu, const std::string string)
 auto Instruction::runInstruction() -> void {
     data_ = static_cast<uint16>(cpu_.dataFetch());
     cpu_.setWriteBackCont();
-    execute();
     if (debug_)
       debug();
+    execute();
+}
+
+auto Instruction::debug() -> void {
+  std::cout << name_ << ": " << regs_;
 }
 
 auto Instruction::popStack() -> uint8 {
@@ -231,7 +235,7 @@ void Pha::execute() {
   wbc_ = data_;
 }
 void Php::execute() {
-  wbc_ = data_;
+  wbc_ = regs_.P_.toUint8() | 0b110000;
 }
 void Pla::execute() {
   wbc_ = popStack();
@@ -262,11 +266,10 @@ void Rti::execute() {
   regs_.PC_ = pc;
 }
 
-// Note that you don't mark the branch as taken here
-// this is because we push in PC + 2 instead of PC + 3 in JSR
-// and so we need the PC to be incremented by 1 afterwards
+// You have to mark the branch taken
 void Rts::execute() {
-  regs_.PC_ = popPCFromStack();
+  regs_.PC_ = popPCFromStack() + 1;
+  branchTaken_ = true;
 }
 
 void Sbc::execute() {

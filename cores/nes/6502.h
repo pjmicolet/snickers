@@ -246,7 +246,9 @@ struct Reg {
 };
 
 struct Registers {
-  Registers() : A_(0), X_(0), Y_(0), S_(0x1FF), P_(), PC_(0) {}
+  Registers() : A_(0), X_(0), Y_(0), S_(0x1FD), P_(), PC_(0) {
+    P_ = 0x34;
+  }
   Reg A_;
   Reg X_;
   Reg Y_;
@@ -254,12 +256,12 @@ struct Registers {
   StatusReg P_;
   uint16 PC_;
   friend std::ostream& operator<<(std::ostream& os, const Registers& regs) {
-    os << "["<<regs.PC_ << "]: A[" << regs.A_ << "] X[" << regs.X_ << "] Y[" << regs.Y_ << "] S[" << regs.S_ << "] P[" << regs.P_<<"]\n";
+    os << "["<< std::hex << regs.PC_ << "]: A[" << regs.A_ << "] X[" << regs.X_ << "] Y[" << regs.Y_ << "] S[" << regs.S_ << "] P[" << regs.P_<<"]\n";
     return os;
   }
 
   auto clear () -> void {
-    A_ = 0; X_ = 0; Y_ = 0; S_ = 0x1FF; P_.clear(); PC_ = 0;
+    A_ = 0; X_ = 0; Y_ = 0; S_ = 0x1FD; P_.clear(); PC_ = 0;
   }
 };
 
@@ -346,6 +348,8 @@ struct WriteBackCont {
       *stptr-= 1;
     } else if(ptr != nullptr) {
         *ptr = data;
+    } else if(sptr != nullptr){
+        *sptr = data;
     } else {
       if(data == 0)
         isZero_ = true;
@@ -564,7 +568,7 @@ protected:
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       ABSADDR,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, ACC, IMM, ACC, IMM, ABSADDR, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, IND, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, ACC,  IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
@@ -573,10 +577,10 @@ protected:
 
   std::array<NES_DESTINATION, 256> instToDestination = {
       SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, PREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, AREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP,  YREG,  AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, AREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP,  YREG,  AREG, AREG, NOP, NOP, MEM, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, AREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       YREG, AREG, XREG,XREG,YREG, AREG, XREG,XREG,YREG,AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, YREG, AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
       PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, XREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,

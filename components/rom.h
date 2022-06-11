@@ -24,6 +24,9 @@ public:
   // Could be in utils idk
   auto load_rom(const std::filesystem::path &path) -> bool;
   auto size() -> size_t { return data_.size(); };
+  auto begin() -> std::vector<std::byte>::iterator;
+  auto end() -> std::vector<std::byte>::iterator;
+  auto at(size_t index) -> std::byte;
 
 private:
   std::vector<std::byte> data_;
