@@ -60,19 +60,19 @@ void Axs::execute() {}
 void Bcc::execute() {
   if(!regs_.P_.isCarrySet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + data_ + 2;
   }
 }
 void Bcs::execute() {
   if(regs_.P_.isCarrySet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + data_;
+    regs_.PC_ = regs_.PC_ + data_ + 2;
   }
 }
 void Beq::execute() {
   if(regs_.P_.isZeroSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Bit::execute() {
@@ -85,32 +85,32 @@ void Bit::execute() {
 void Bmi::execute() {
   if(regs_.P_.isNegSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Bne::execute() {
   if(!regs_.P_.isZeroSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Bpl::execute() {
   if(!regs_.P_.isNegSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Brk::execute() {}
 void Bvc::execute() {
   if(!regs_.P_.isOverflowSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Bvs::execute() {
   if(regs_.P_.isOverflowSet()) {
     branchTaken_ = true;
-    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_);
+    regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Clc::execute() {
@@ -153,7 +153,17 @@ void Cpy::execute() {
   regs_.P_.setZero(equal);
   regs_.P_.setNegative(neg);
 }
-void Dcp::execute() {}
+void Dcp::execute() {
+  uint8 shiftd = data_ - 1;
+  wbc_ = shiftd;
+  uint8 regA = (uint8)regs_.A_;
+  bool equal = regA == shiftd;
+  bool carry = regA >= shiftd;
+  bool neg = (regA - shiftd) & 0x80;
+  regs_.P_.setCarry(carry);
+  regs_.P_.setZero(equal);
+  regs_.P_.setNegative(neg);
+}
 void Dec::execute() {
   wbc_ = (data_ - 1);
   regs_.P_.setZero(wbc_.isZero());
@@ -189,7 +199,17 @@ void Iny::execute() {
   regs_.P_.setZero(wbc_.isZero());
   regs_.P_.setNegative(wbc_.isNegative());
 }
-void Isc::execute() {}
+void Isc::execute() {
+  uint8 data = data_;
+  data++;
+  uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
+  regs_.A_ -= {data,c};
+  regs_.P_.setCarry(regs_.A_.hasCarry());
+  regs_.P_.setZero(regs_.A_.isZero());
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  regs_.P_.setOverflow(regs_.A_.hasOverflown());
+  wbc_ = data;
+}
 void Jmp::execute() {
   branchTaken_ = true;
   regs_.PC_ = data_;
@@ -201,7 +221,12 @@ void Jsr::execute() {
 }
 void Kil::execute() {}
 void Las::execute() {}
-void Lax::execute() {}
+void Lax::execute() {
+  regs_.A_ = data_;
+  regs_.X_ = data_;
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  regs_.P_.setZero(regs_.A_.isZero());
+}
 void Lda::execute() {
   wbc_ = data_;
   regs_.P_.setNegative(wbc_.isNegative());
@@ -245,8 +270,30 @@ void Pla::execute() {
 void Plp::execute() {
   wbc_ = popStack();
 }
-void Rla::execute() {}
-void Rra::execute() {}
+void Rla::execute() {
+  uint8 oldP = regs_.P_.isCarrySet();
+  regs_.P_.setCarry(data_&0x80);
+  uint8 data = (data_ << 1)|oldP;
+  regs_.A_ &= data;
+  regs_.P_.setZero(regs_.A_.isZero());
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  wbc_ = data;
+
+}
+
+void Rra::execute() {
+  uint8 oldP = regs_.P_.isCarrySet();
+  regs_.P_.setCarry(data_&0x1);
+  uint8 data = data_>>1 | oldP << 7;
+  uint8 carry = regs_.P_.isCarrySet() ? 1 : 0;
+  regs_.A_ += {data,carry};
+  regs_.P_.setCarry(regs_.A_.hasCarry());
+  regs_.P_.setZero(regs_.A_.isZero());
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  regs_.P_.setOverflow(regs_.A_.hasOverflown());
+  wbc_ = data;
+}
+
 void Rol::execute() {
   wbc_.rol(regs_.P_.isCarrySet());
   regs_.P_.setNegative(wbc_.isNegative());
@@ -264,6 +311,7 @@ void Rti::execute() {
   uint16 pc = popPCFromStack();
   regs_.P_ = statusReg;
   regs_.PC_ = pc;
+  branchTaken_ = true;
 }
 
 // You have to mark the branch taken
@@ -273,6 +321,7 @@ void Rts::execute() {
 }
 
 void Sbc::execute() {
+  bool oldC = regs_.P_.isCarrySet();
   uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
   wbc_ -= {data_,c};
   regs_.P_.setCarry(wbc_.hasCarry());
@@ -281,7 +330,20 @@ void Sbc::execute() {
   regs_.P_.setOverflow(wbc_.hasOverflown());
 }
 
-void Sax::execute() {}
+void SbcMem::execute() {
+  bool oldC = regs_.P_.isCarrySet();
+  uint8 c = regs_.P_.isCarrySet() ? 1 : 0;
+  regs_.A_ -= {data_,c};
+  wbc_ = regs_.A_;
+  regs_.P_.setCarry(regs_.A_.hasCarry());
+  regs_.P_.setZero(regs_.A_.isZero());
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  regs_.P_.setOverflow(regs_.A_.hasOverflown());
+}
+
+void Sax::execute() {
+  wbc_ = regs_.A_ & regs_.X_;
+}
 void Sec::execute() {
   regs_.P_.setCarry(true);
 }
@@ -293,8 +355,22 @@ void Sei::execute() {
 }
 void Shx::execute() {}
 void Shy::execute() {}
-void Slo::execute() {}
-void Sre::execute() {}
+void Slo::execute() {
+  regs_.P_.setCarry(data_&0x80);
+  uint8 data = data_ << 1;
+  regs_.A_ |= data;
+  regs_.P_.setZero(regs_.A_.isZero());
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  wbc_ = data;
+}
+void Sre::execute() {
+  regs_.P_.setCarry(data_&0x1);
+  uint8 data = data_>>1;
+  regs_.A_ ^= data;
+  regs_.P_.setZero(regs_.A_.isZero());
+  regs_.P_.setNegative(regs_.A_.isNegative());
+  wbc_ = data;
+}
 void Sta::execute() {
   wbc_ = (uint8)regs_.A_; // fix this
 }
@@ -315,13 +391,19 @@ void Tay::execute() {
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
-void Tsx::execute() {}
+void Tsx::execute() {
+  wbc_ = data_;
+  regs_.P_.setNegative(wbc_.isNegative());
+  regs_.P_.setZero(wbc_.isZero());
+}
 void Txa::execute() {
   wbc_ = data_;
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
-void Txs::execute() {}
+void Txs::execute() {
+  regs_.S_ = data_ | 0x100;
+}
 void Tya::execute() {
   wbc_ = data_;
   regs_.P_.setNegative(wbc_.isNegative());

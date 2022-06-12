@@ -1,8 +1,11 @@
 #include "6502.h"
 #include <cstddef>
 
+#define WRAPAROUND(data)\
+  data&0xFF;
+
 #define INSINST(name)\
-  insts_.emplace_back(std::make_unique<name>(true,*this));
+  insts_.emplace_back(std::make_unique<name>(false,*this));
 
 CPU_6502::CPU_6502() {
     std::vector<BankInfo> banks{{0x800, 0}, {0x8, 1}, {0x18, 2}, {0x08, 3}, {0xBFE0, 4}};
@@ -10,8 +13,7 @@ CPU_6502::CPU_6502() {
     // I know there's 0x10000 addresses but technically
     // these are the only ones that are actually used;
     BanksAndSize cfg = {banks, 0xC808};
-    std::vector<int> tracedLines = {0x200,0x201,0x202};
-    ram_ = std::make_shared<NES_RAM>(cfg, &tracedLines);
+    ram_ = std::make_shared<NES_RAM>(cfg);
     wbc_ = WriteBackCont{ram_};
     branchTaken_ = false;
     bool debug = false;
@@ -28,20 +30,28 @@ CPU_6502::CPU_6502() {
 // These functions are just to handle the different ways of fetching data for 8 and 16 bit data
 inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16 { return std::to_integer<uint16_t>(ram->load(address)); }
 
-inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1) -> uint16 {
-  auto lowByte = std::to_integer<uint16_t>(ram->load(PC + offset));
-  auto highByte = std::to_integer<uint16_t>(ram->load(PC + offset + 1));
+inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1, bool wrapAround = false) -> uint16 {
+  uint16 byteMask = wrapAround ? 0xFF : 0xFFFF;
+  auto lowByte = std::to_integer<uint16_t>(ram->load((PC + offset) & byteMask));
+  auto highByte = std::to_integer<uint16_t>(ram->load((PC + offset + 1)&byteMask));
   return (uint16)(highByte << 8) | (uint16)lowByte;
 }
 
+// What we want is
+// address is
+// low byte = PC + 1 + X
+// high byte = PC + 1 + X + 1
+// that gives you where to get the address
+// load that
+// then you get data from there
 inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16 {
-  uint16 baseAddr = ramToAddress(ram, PC+1) + X;
-  return twoByteAddress(ram,baseAddr,0);
+  uint16 baseAddr = (ramToAddress(ram, PC+1) + X) & 0xFF;
+  return twoByteAddress(ram,baseAddr,0, true);
 }
 
 inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16 {
   auto baseAddr = ramToAddress(ram, PC+1);
-  auto pcAddr = twoByteAddress(ram, baseAddr, 0);
+  auto pcAddr = twoByteAddress(ram, baseAddr, 0, true);
   return pcAddr + Y;
 }
 
@@ -68,6 +78,37 @@ auto CPU_6502::runProgram(size_t until) -> void {
   }
 }
 
+auto CPU_6502::debugRun(size_t until, std::vector<std::vector<uint16_t>>& data) -> bool {
+  CPU_State dbgCheck{};
+  size_t line = 0;
+  dbgCheck.A.reset(new uint8(data[line][1]));
+  dbgCheck.X.reset(new uint8(data[line][2])); // carry is set
+  dbgCheck.Y.reset(new uint8(data[line][3])); // carry is set
+  dbgCheck.P.reset(new uint8(data[line][4])); // carry is set
+  dbgCheck.S.reset(new uint9(data[line][5]+0x100)); // carry is set
+  dbgCheck.PC.reset(new uint16(data[line][0])); // carry is set
+  size_t numInst = data.size();
+  while(static_cast<size_t>(regs_.PC_) < until){
+    if(*this == dbgCheck) {
+      execute();
+      incrementPC();
+      line++;
+      if(line == numInst)
+        return true;
+      dbgCheck.A.reset(new uint8(data[line][1]));
+      dbgCheck.X.reset(new uint8(data[line][2])); // carry is set
+      dbgCheck.Y.reset(new uint8(data[line][3])); // carry is set
+      dbgCheck.P.reset(new uint8(data[line][4])); // carry is set
+      dbgCheck.S.reset(new uint9(data[line][5]+0x100)); // carry is set
+      dbgCheck.PC.reset(new uint16(data[line][0])); // carry is set
+    }
+    else {
+      return false;
+    }
+  }
+  return false;
+}
+
 auto CPU_6502::execute() -> void {
   auto inst = getInstructionOp();
   insts_[inst]->runInstruction();
@@ -85,10 +126,11 @@ auto CPU_6502::dataFetch() -> uint16 {
     break; case ACC: return regs_.A_; //there's no real fetch here afaik
     break; case YDATA: return regs_.Y_; //there's no real fetch here afaik
     break; case XDATA: return regs_.X_; //there's no real fetch here afaik
+    break; case SDATA: return regs_.S_ & 0xFF; //there's no real fetch here afaik
     break; case IMM: data = ram_->load( regs_.PC_ + 1 );
     break; case ZP: data = ram_->load(ramToAddress(ram_, regs_.PC_+1));
-    break; case ZPX: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_));
-    break; case ZPY: data = ram_->load(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_));
+    break; case ZPX: data = ram_->load((ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_))&0xFF);
+    break; case ZPY: data = ram_->load((ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_))&0xFF);
     break; case REL: data = ram_->load(regs_.PC_+1);
     break; case ABS: data = ram_->load(twoByteAddress(ram_, regs_.PC_));
     break; case ABSADDR: return twoByteAddress(ram_, regs_.PC_);
@@ -124,7 +166,7 @@ auto CPU_6502::incrementPC() -> void {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   std::byte data;
   switch (addressingMode) {
-    break; case IMPL: case XDATA: case YDATA: case ACC: regs_.PC_ = regs_.PC_ + 1;
+    break; case IMPL: case XDATA: case YDATA: case ACC: case SDATA: regs_.PC_ = regs_.PC_ + 1;
     break; case IMM: case ZP: case ZPX: case ZPY: case REL: case INDX: case INDY: regs_.PC_ = regs_.PC_ + 2;
     break; case ABS: case ABSX : case ABSY: case IND: regs_.PC_ = regs_.PC_ + 3;
     break; default: throw( "This is wrong!" );
@@ -137,13 +179,14 @@ auto CPU_6502::indexFetch() -> uint16 {
   auto addressingMode = resolveAddMode( regs_.PC_ );
   switch (addressingMode) {
     break; case ZP:   return ramToAddress(ram_, regs_.PC_+1);
-    break; case ZPX:  return ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_);
-    break; case ZPY:  return ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_);
+    break; case ZPX:  return WRAPAROUND(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.X_));
+    break; case ZPY:  return WRAPAROUND(ramToAddress(ram_, regs_.PC_+1)+static_cast<uint16>(regs_.Y_));
     break; case REL:  return regs_.PC_+1;
     break; case ABS:  return twoByteAddress(ram_, regs_.PC_);
     break; case ABSX: return twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.X_);
     break; case ABSY: return twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.Y_);
     break; case INDX: return indirectX(ram_, regs_.PC_,regs_.X_);
+    break; case INDY: return indirectY(ram_, regs_.PC_,regs_.Y_);
     break; case IND:  return resolveIndirectAddress(ram_, regs_.PC_, 0);
     default:
       throw( "There's no other case where we should get indexes" );

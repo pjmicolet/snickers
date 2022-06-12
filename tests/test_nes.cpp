@@ -3,6 +3,25 @@
 #include "../assemblers/nes/nes.h"
 #include "test_utils.h"
 #include "../cores/nes/nes_rom.h"
+#include <fstream>
+
+
+auto parseLog(const std::filesystem::path &path) -> std::vector<std::vector<uint16_t>> {
+  std::ifstream log(path, std::ios::binary);
+  std::vector<std::vector<uint16_t>> data;
+  for(std::string line; std::getline(log,line,'\n');) {
+    auto split = strSplit(line, " ");
+    // PC A X Y P S
+    data.push_back({static_cast<uint16_t>(stringToInt(split[0])),
+                    static_cast<uint16_t>(stringToInt(split[1])),
+                    static_cast<uint16_t>(stringToInt(split[2])),
+                    static_cast<uint16_t>(stringToInt(split[3])),
+                    static_cast<uint16_t>(stringToInt(split[4])),
+                    static_cast<uint16_t>(stringToInt(split[5])),
+          });
+  }
+  return data;
+}
 
 auto write_ram_map(CPU_6502& cpu, std::vector<uint8_t>& bytes) -> void {
   uint16_t index = 0;
@@ -22,14 +41,12 @@ auto write_ram_map(CPU_6502& cpu, std::vector<std::byte>& bytes) -> void {
 
 auto write_ram_map(CPU_6502& cpu, std::span<std::byte> bytes, size_t offset = 0) -> void {
   uint16_t index = 0;
-  std::cout << bytes.size() << "\n";
   for(auto& byte: bytes) {
     if(index + offset > 0xFFFF)
       break;
     cpu.ram_->store(index+offset,byte);
     index++;
   }
-  std::cout << std::to_integer<int>(cpu.ram_->load(0xc000)) << "\n";
 }
 
 auto test_nes_ram_basic() -> bool {
@@ -160,7 +177,7 @@ auto test_nes_basic_asm() -> bool {
   cpu.setPC(0);
   cpu.runProgram(4); // That's 3 bytes for INX INX and INY
   cstate.A.reset(new uint8(0x00));
-  cstate.P.reset(new uint8(0x03));
+  cstate.P.reset(new uint8(3|36));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();
@@ -188,14 +205,14 @@ auto test_nes_basic_asm() -> bool {
       "STA $45\n" //2
       "LDA #12\n" //4
       "CMP $45\n" //6 this sets the carry flag as well
-      "BEQ 04\n" //8
+      "BEQ 02\n" //8
       "LDA #23\n" //10
       "ADC #01\n" //12
   );
 
   write_ram_map(cpu,ram_data);
   cpu.setPC(0);
-  cpu.runProgram(13); // That's 3 bytes for INX INX and INY
+  cpu.runProgram(14); // That's 3 bytes for INX INX and INY
   cstate.A.reset(new uint8(0x14));
   passed = cpu == cstate;
   cstate.reset();
@@ -207,7 +224,7 @@ auto test_nes_basic_asm() -> bool {
       "LDA #12\n" //4
       "CMP $45\n" //6 this sets the carry flag as well
       "CLC\n" //Clear carry
-      "BEQ 04\n" //8
+      "BEQ 02\n" //8
       "LDA #23\n" //10
       "ADC #01\n" //12
   );
@@ -227,7 +244,7 @@ auto test_nes_basic_asm() -> bool {
       "CPX #00\n"
       "INY \n"
       "DEX \n"
-      "BNE FC" //jump back 4
+      "BNE FA" //jump back 4
   );
 
   write_ram_map(cpu,ram_data);
@@ -256,22 +273,22 @@ auto test_nes_basic_asm() -> bool {
       "LDA #01\n" //0
       "ASL A\n"
       "CMP #02\n"
-      "BEQ 03\n"
+      "BEQ 01\n"
       "INX\n"
       "INY\n"
       "ASL A\n"
       "CMP #04\n"
-      "BEQ 03\n"
+      "BEQ 01\n"
       "INX\n"
       "INY\n"
       "ASL A\n"
       "CMP #08\n"
-      "BEQ 03\n"
+      "BEQ 01\n"
       "INX\n"
       "INY\n"
       "ASL A\n"
       "CMP #10\n"
-      "BEQ 03\n"
+      "BEQ 01\n"
       "INX\n"
       "INY\n"
   );
@@ -296,7 +313,7 @@ auto test_nes_basic_asm() -> bool {
   write_ram_map(cpu,ram_data);
   cpu.setPC(0);
   cpu.runProgram(8); // That's 3 bytes for INX INX and INY
-  cstate.P.reset(new uint8(0x42));
+  cstate.P.reset(new uint8(0x42|36));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();
@@ -311,7 +328,7 @@ auto test_nes_basic_asm() -> bool {
   write_ram_map(cpu,ram_data);
   cpu.setPC(0);
   cpu.runProgram(8); // That's 3 bytes for INX INX and INY
-  cstate.P.reset(new uint8(0x0));
+  cstate.P.reset(new uint8(0x0|36));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();
@@ -325,7 +342,7 @@ auto test_nes_basic_asm() -> bool {
   cpu.setPC(0);
   cpu.runProgram(4); // That's 3 bytes for INX INX and INY
   cstate.A.reset(new uint8(0xFF));
-  cstate.P.reset(new uint8(0x80));
+  cstate.P.reset(new uint8(0x80|36));
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();
@@ -445,7 +462,7 @@ auto test_nes_basic_asm() -> bool {
   cpu.setPC(0);
   cpu.runProgram(0xA); // That's 3 bytes for INX INX and INY
   cstate.A.reset(new uint8(0x0));
-  cstate.P.reset(new uint8(0x3)); // carry is set
+  cstate.P.reset(new uint8(0x3|36)); // carry is set
   passed = cpu == cstate;
   cstate.reset();
   cpu.clear();
@@ -454,15 +471,14 @@ auto test_nes_basic_asm() -> bool {
 }
 
 auto test_nes_mega() {
-  bool passed = true;
   CPU_6502 cpu{};
   NesAssembler nesAs{};
   NesRom rom{"nestest.nes"};
 
   write_ram_map(cpu,rom.getProgram(), 0xc000);
   cpu.setPC(0xc000);
-  cpu.runProgram(0xFFFF);
-  return passed;
+  auto bla = parseLog("log.txt");
+  return cpu.debugRun(0xFFFF, bla);
 }
 
 auto test_nes() -> bool {

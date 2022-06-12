@@ -19,7 +19,7 @@ using uint16 = Unsigned<16>;
 using ram_ptr = std::shared_ptr<NES_RAM>;
 
 struct StatusReg {
-  StatusReg() : status_(0b00000000) {}
+  StatusReg() : status_(0x24) {}
   auto setCarry(bool c) -> void {
     status_[0] = c;
   }
@@ -39,14 +39,15 @@ struct StatusReg {
     status_[7] = n;
   }
   auto clear() -> void {
-    status_ = 0b00000000;
+    status_ = 0x24;
   }
   auto operator=(uint8 pset){
     status_[0] = pset & 0x1;
     status_[1] = pset & 0x2;
-    status_[3] = pset & 0x4;
-    status_[6] = pset & 0x10;
-    status_[7] = pset & 0x20;
+    status_[2] = pset & 0x4;
+    status_[3] = pset & 0x8;
+    status_[6] = pset & 0x40;
+    status_[7] = pset & 0x80;
   }
 
   auto isCarrySet() -> bool {
@@ -121,10 +122,10 @@ struct Reg {
 
   auto operator -=(const std::pair<uint8,uint8>dataCarryPair){
     uint9 tmp = RVal_ - (uint9) dataCarryPair.first - (1 - (uint9) dataCarryPair.second);
-    carry_ = (tmp&0x100);
+    carry_ = !(tmp&0x100);
     tmp = tmp & 0xFF;
     isZero_ = (tmp == 0);
-    if((RVal_ ^ tmp) & (dataCarryPair.first ^ tmp) & 0x80) {
+    if((((uint8)RVal_ ^ dataCarryPair.first) & 0x80) & ((uint8)RVal_ ^ tmp) & 0x80) {
       overflow_ = true;
     } else {
       overflow_ = false;
@@ -234,6 +235,7 @@ struct Reg {
   auto isZero() -> bool {auto tmp = isZero_; isZero_ = false; return tmp;}
   auto hasOverflown() -> bool {auto tmp = overflow_; overflow_ = false; return tmp;}
   auto isNegative() -> bool {auto tmp = isNeg_; isNeg_ = false; return tmp;}
+  auto keepCarry() -> void {carry_ = true;}
 
   private:
   Reg(uint9 a, bool carry, bool overflow, bool isZero, bool isNeg) : RVal_(a), carry_(carry), overflow_(overflow), isZero_(isZero), isNeg_(isNeg) {};
@@ -247,7 +249,7 @@ struct Reg {
 
 struct Registers {
   Registers() : A_(0), X_(0), Y_(0), S_(0x1FD), P_(), PC_(0) {
-    P_ = 0x34;
+    P_ = 36;
   }
   Reg A_;
   Reg X_;
@@ -261,7 +263,7 @@ struct Registers {
   }
 
   auto clear () -> void {
-    A_ = 0; X_ = 0; Y_ = 0; S_ = 0x1FD; P_.clear(); PC_ = 0;
+    A_ = 0; X_ = 0; Y_ = 0; S_ = 0x1FD; P_.clear(); P_ = 36; PC_ = 0;
   }
 };
 
@@ -282,6 +284,7 @@ enum NES_ADDRESS_MODE {
   INDY, // indirect indexed
   XDATA, // fetch reg
   YDATA, // fetch reg
+  SDATA, // fetch data from SReg
 };
 
 enum NES_DESTINATION {
@@ -518,6 +521,7 @@ struct CPU_6502 {
   auto printDebug() -> void;
   auto cliOutput() -> std::string;
   auto runProgram(size_t until) -> void;
+  auto debugRun(size_t until, std::vector<std::vector<uint16_t>>& data) -> bool;
   auto clear() -> void {
     regs_.clear();
     ram_->clear();
@@ -548,7 +552,7 @@ struct CPU_6502 {
     if(cstate.P.get()) {
       theSame &= (*(cstate.P) == regs_.P_.toUint8());
       if(!theSame)
-        std::cout << "Mismatch P " << *(cstate.P) << " " << regs_.P_ << "\n";
+        std::cout << "Mismatch P " << *(cstate.P) << " " << regs_.P_.toUint8() << "\n";
     }
     if(cstate.PC.get()) {
       theSame &= (*(cstate.PC) == regs_.PC_);
@@ -569,21 +573,21 @@ protected:
       ABSADDR,  INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, ACC, IMM, ACC, IMM, ABSADDR, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, IND, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, ACC,  IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, XDATA, ABSY, ABSX, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, ACC,  IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, SDATA, ABSY, ABSX, ABSX, ABSY, ABSY,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSY, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX
   };
 
   std::array<NES_DESTINATION, 256> instToDestination = {
-      SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      SREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, PREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, SREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      PCREG,AREG, NOP, NOP, NOP,  AREG, MEM, NOP, AREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM, NOP,  YREG,  AREG, AREG, NOP, NOP, MEM, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, AREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      YREG, AREG, XREG,XREG,YREG, AREG, XREG,XREG,YREG,AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, YREG, AREG, XREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
-      PREG, AREG, NOP, NOP, NOP,  AREG, MEM, NOP, XREG, AREG, AREG, NOP, NOP, AREG, MEM, NOP, PCREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP, PREG, AREG, NOP, NOP, NOP, AREG, MEM, NOP,
+      SREG, AREG, NOP, MEM, NOP,  AREG, MEM, MEM, SREG, AREG, AREG, NOP, NOP, AREG, MEM, MEM, PCREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM, PREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM,
+      SREG, AREG, NOP, MEM, NOP,  AREG, MEM, MEM, PREG, AREG, AREG, NOP, NOP, AREG, MEM, MEM, PCREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM, PREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM,
+      PCREG,AREG, NOP, MEM, NOP,  AREG, MEM, MEM, SREG, AREG, AREG, NOP, NOP, AREG, MEM, MEM, PCREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM, PREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM,
+      PCREG,AREG, NOP, MEM, NOP,  AREG, MEM, MEM, AREG, AREG, AREG, NOP, NOP, AREG, MEM, MEM, PCREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM, PREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM,
+      NOP,  MEM,  MEM, MEM, MEM,  MEM, MEM,  MEM,  YREG,  AREG, AREG, NOP, MEM, MEM, MEM, MEM, PCREG, MEM, NOP, NOP, MEM, MEM, MEM,  MEM, AREG,  MEM, SREG, NOP, NOP, MEM, MEM, NOP,
+      YREG, AREG, XREG,XREG,YREG, AREG, XREG,XREG,YREG,AREG, XREG, NOP,  YREG, AREG, XREG, NOP, PCREG, AREG, NOP, NOP, YREG, AREG, XREG, NOP, PREG, AREG, XREG, NOP, YREG, AREG, XREG, NOP,
+      PREG, AREG, NOP, MEM, NOP,  AREG, MEM, MEM, YREG, AREG, XREG, NOP, NOP, AREG, MEM, MEM, PCREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM, PREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM,
+      PREG, AREG, NOP, MEM, NOP,  AREG, MEM, MEM, XREG, AREG, AREG, AREG, NOP, AREG, MEM, MEM, PCREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM, PREG, AREG, NOP, MEM, NOP, AREG, MEM, MEM,
   };
 
   std::array<std::string, 256> instToName = {
