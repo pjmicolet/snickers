@@ -91,7 +91,7 @@ struct Reg {
     bool carry = false;
     bool overflow = false;
     bool isZero = false;
-    carry_ = (res&0x100 == 0x100);
+    carry_ = ((res&0x100) == 0x100);
     res = res & 0xFF;
     isZero_ = (res == 0);
     if((RVal_ ^ res) & (otherNum ^ res) & 0x80) {
