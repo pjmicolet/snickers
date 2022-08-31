@@ -4,7 +4,7 @@
 
 auto test_basic_load() -> bool {
   try {
-    Rom rom("./Ladida_lol.sfc");
+    Rom rom("nestest.nes");
     if (rom.size() == 0)
       return false;
   } catch (RomException &e) {

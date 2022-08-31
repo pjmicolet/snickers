@@ -2,6 +2,7 @@
 #include <deque>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 /*
     Stores data as:
