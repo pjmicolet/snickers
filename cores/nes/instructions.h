@@ -43,6 +43,7 @@ public:
   void runInstruction();
 
 protected:
+  auto cycleIncrement(uint64_t count) -> void;
   auto popStack() -> uint8;
   auto pushStack(uint16 data) -> void;
   auto popPCFromStack() -> uint16;

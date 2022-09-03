@@ -9,6 +9,7 @@ auto Instruction::runInstruction() -> void {
     cpu_.setWriteBackCont();
     if (debug_)
       debug();
+    cpu_.cycle();
     execute();
 }
 
@@ -18,6 +19,10 @@ auto Instruction::debug() -> void {
 
 auto Instruction::popStack() -> uint8 {
   return cpu_.popStack();
+}
+
+auto Instruction::cycleIncrement(uint64_t cycleCount ) -> void {
+  return cpu_.cycleIncrement(cycleCount);
 }
 
 auto Instruction::pushStack(uint16 data) -> void {
@@ -60,21 +65,34 @@ void Axs::execute() {}
 void Bcc::execute() {
   if(!regs_.P_.isCarrySet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ +2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + data_ + 2;
   }
 }
+
 void Bcs::execute() {
   if(regs_.P_.isCarrySet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + data_ + 2;
   }
 }
+
 void Beq::execute() {
   if(regs_.P_.isZeroSet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+
+    if(((regs_.PC_ + 2 & 0xFF) +  static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
+
 void Bit::execute() {
   uint8 areg = static_cast<uint8>(regs_.A_);
   uint8 res = areg & data_;
@@ -82,34 +100,56 @@ void Bit::execute() {
   regs_.P_.setOverflow(data_&0x40);
   regs_.P_.setNegative(data_&0x80);
 }
+
 void Bmi::execute() {
   if(regs_.P_.isNegSet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
+
 void Bne::execute() {
   if(!regs_.P_.isZeroSet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
+
 void Bpl::execute() {
   if(!regs_.P_.isNegSet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
-void Brk::execute() {}
+
+void Brk::execute() {
+  cycleIncrement(5); //Brk takes 7 cycles, so 5 extra compared to minimum IMM inst
+}
+
 void Bvc::execute() {
   if(!regs_.P_.isOverflowSet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
 void Bvs::execute() {
   if(regs_.P_.isOverflowSet()) {
     branchTaken_ = true;
+    cycleIncrement(1);
+    if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
+      cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
   }
 }
@@ -163,12 +203,14 @@ void Dcp::execute() {
   regs_.P_.setCarry(carry);
   regs_.P_.setZero(equal);
   regs_.P_.setNegative(neg);
+  cycleIncrement(2);
 }
 void Dec::execute() {
   wbc_ = (data_ - 1);
   regs_.P_.setZero(wbc_.isZero());
   regs_.P_.setNegative(wbc_.isNegative());
 }
+
 void Dex::execute() {
   wbc_ -= 1; //fix this
   regs_.P_.setZero(wbc_.isZero());
@@ -209,45 +251,56 @@ void Isc::execute() {
   regs_.P_.setNegative(regs_.A_.isNegative());
   regs_.P_.setOverflow(regs_.A_.hasOverflown());
   wbc_ = data;
+  cycleIncrement(2);
 }
+
 void Jmp::execute() {
   branchTaken_ = true;
   regs_.PC_ = data_;
 }
+
 void Jsr::execute() {
   pushStack(regs_.PC_+2);
   regs_.PC_ = data_;
   branchTaken_ = true;
+  cycleIncrement(3);
 }
+
 void Kil::execute() {}
 void Las::execute() {}
+
 void Lax::execute() {
   regs_.A_ = data_;
   regs_.X_ = data_;
   regs_.P_.setNegative(regs_.A_.isNegative());
   regs_.P_.setZero(regs_.A_.isZero());
 }
+
 void Lda::execute() {
   wbc_ = data_;
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
+
 void Ldx::execute() {
   wbc_ = data_;
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
+
 void Ldy::execute() {
   wbc_ = data_;
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
+
 void Lsr::execute() {
   wbc_ >>= 1;
   regs_.P_.setCarry(wbc_.hasCarry());
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
 }
+
 void Nop::execute() {}
 
 void Ora::execute() {
@@ -258,17 +311,21 @@ void Ora::execute() {
 
 void Pha::execute() {
   wbc_ = data_;
+  cycleIncrement(1);
 }
 void Php::execute() {
   wbc_ = regs_.P_.toUint8() | 0b110000;
+  cycleIncrement(1);
 }
 void Pla::execute() {
   wbc_ = popStack();
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
+  cycleIncrement(2);
 }
 void Plp::execute() {
   wbc_ = popStack();
+  cycleIncrement(2);
 }
 void Rla::execute() {
   uint8 oldP = regs_.P_.isCarrySet();
@@ -278,7 +335,7 @@ void Rla::execute() {
   regs_.P_.setZero(regs_.A_.isZero());
   regs_.P_.setNegative(regs_.A_.isNegative());
   wbc_ = data;
-
+  cycleIncrement(2);
 }
 
 void Rra::execute() {
@@ -292,6 +349,7 @@ void Rra::execute() {
   regs_.P_.setNegative(regs_.A_.isNegative());
   regs_.P_.setOverflow(regs_.A_.hasOverflown());
   wbc_ = data;
+  cycleIncrement(2);
 }
 
 void Rol::execute() {
@@ -300,6 +358,7 @@ void Rol::execute() {
   regs_.P_.setZero(wbc_.isZero());
   regs_.P_.setCarry(wbc_.hasCarry());
 }
+
 void Ror::execute() {
   wbc_.ror(regs_.P_.isCarrySet());
   regs_.P_.setNegative(wbc_.isNegative());
@@ -312,12 +371,16 @@ void Rti::execute() {
   regs_.P_ = statusReg;
   regs_.PC_ = pc;
   branchTaken_ = true;
+  // Takes an extra 4 cycles
+  cycleIncrement(4);
 }
 
 // You have to mark the branch taken
 void Rts::execute() {
   regs_.PC_ = popPCFromStack() + 1;
   branchTaken_ = true;
+  // Takes an extra 4 cycles
+  cycleIncrement(4);
 }
 
 void Sbc::execute() {
@@ -362,6 +425,7 @@ void Slo::execute() {
   regs_.P_.setZero(regs_.A_.isZero());
   regs_.P_.setNegative(regs_.A_.isNegative());
   wbc_ = data;
+  cycleIncrement(2);
 }
 void Sre::execute() {
   regs_.P_.setCarry(data_&0x1);
@@ -370,6 +434,7 @@ void Sre::execute() {
   regs_.P_.setZero(regs_.A_.isZero());
   regs_.P_.setNegative(regs_.A_.isNegative());
   wbc_ = data;
+  cycleIncrement(2);
 }
 void Sta::execute() {
   wbc_ = (uint8)regs_.A_; // fix this

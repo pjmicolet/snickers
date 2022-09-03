@@ -25,7 +25,9 @@ CPU_6502::CPU_6502() {
     INSINST(Ldy) INSINST(Lda) INSINST(Ldx) INSINST(Lax) INSINST(Ldy) INSINST(Lda) INSINST(Ldx) INSINST(Lax) INSINST(Tay) INSINST(Lda) INSINST(Tax) INSINST(Lax) INSINST(Ldy) INSINST(Lda) INSINST(Ldx) INSINST(Lax) INSINST(Bcs) INSINST(Lda) INSINST(Kil) INSINST(Lax) INSINST(Ldy) INSINST(Lda) INSINST(Ldx) INSINST(Lax) INSINST(Clv) INSINST(Lda) INSINST(Tsx) INSINST(Las) INSINST(Ldy) INSINST(Lda) INSINST(Ldx) INSINST(Lax)
     INSINST(Cpy) INSINST(Cmp) INSINST(Nop) INSINST(Dcp) INSINST(Cpy) INSINST(Cmp) INSINST(Dec) INSINST(Dcp) INSINST(Iny) INSINST(Cmp) INSINST(Dex) INSINST(Axs) INSINST(Cpy) INSINST(Cmp) INSINST(Dec) INSINST(Dcp) INSINST(Bne) INSINST(Cmp) INSINST(Kil) INSINST(Dcp) INSINST(Nop) INSINST(Cmp) INSINST(Dec) INSINST(Dcp) INSINST(Cld) INSINST(Cmp) INSINST(Nop) INSINST(Dcp) INSINST(Nop) INSINST(Cmp) INSINST(Dec) INSINST(Dcp)
     INSINST(Cpx) INSINST(Sbc) INSINST(Nop) INSINST(Isc) INSINST(Cpx) INSINST(Sbc) INSINST(Inc) INSINST(Isc) INSINST(Inx) INSINST(Sbc) INSINST(Nop) INSINST(Sbc) INSINST(Cpx) INSINST(Sbc) INSINST(Inc) INSINST(Isc) INSINST(Beq) INSINST(Sbc) INSINST(Kil) INSINST(Isc) INSINST(Nop) INSINST(Sbc) INSINST(Inc) INSINST(Isc) INSINST(Sed) INSINST(Sbc) INSINST(Nop) INSINST(Isc) INSINST(Nop) INSINST(Sbc) INSINST(Inc) INSINST(Isc)
-  }
+
+    cycleCount_ = 0;
+}
 
 // These functions are just to handle the different ways of fetching data for 8 and 16 bit data
 inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16 { return std::to_integer<uint16_t>(ram->load(address)); }
@@ -87,6 +89,7 @@ auto CPU_6502::debugRun(size_t until, std::vector<std::vector<uint16_t>>& data) 
   dbgCheck.P.reset(new uint8(data[line][4])); // carry is set
   dbgCheck.S.reset(new uint9(data[line][5]+0x100)); // carry is set
   dbgCheck.PC.reset(new uint16(data[line][0])); // carry is set
+  dbgCheck.cycleCount.reset(new uint64_t(static_cast<uint64_t>(data[line][6])));
   size_t numInst = data.size();
   while(static_cast<size_t>(regs_.PC_) < until){
     if(*this == dbgCheck) {
@@ -101,6 +104,7 @@ auto CPU_6502::debugRun(size_t until, std::vector<std::vector<uint16_t>>& data) 
       dbgCheck.P.reset(new uint8(data[line][4])); // carry is set
       dbgCheck.S.reset(new uint9(data[line][5]+0x100)); // carry is set
       dbgCheck.PC.reset(new uint16(data[line][0])); // carry is set
+      dbgCheck.cycleCount.reset(new uint64_t(static_cast<uint64_t>(data[line][6])));
     }
     else {
       return false;
@@ -142,6 +146,54 @@ auto CPU_6502::dataFetch() -> uint16 {
     break; default: throw( "This is wrong!" );
   };
   return std::to_integer<uint16_t>(data);
+}
+
+auto CPU_6502::pageBoundaryPenalty(NES_ADDRESS_MODE mode) -> uint64_t {
+  switch(mode) {
+    break; case ABSX: {
+             // LSR is always +3
+             if(getInstructionOp() == 0x5E || getInstructionOp() == 0x1E || getInstructionOp() == 0x7E || getInstructionOp() == 0x3E || getInstructionOp() == 0xFE || getInstructionOp() == 0xDE)
+               return 3;
+             // This is a hack and special case, looks like STA always takes an extra cycle here. so do a few NOPs
+             if(instToName[getInstructionOp()] == "sta")
+               return 1;
+             uint9 mem = std::to_integer<uint8_t>(ram_->load(regs_.PC_+1));
+             if((mem + regs_.X_) & 0x100)
+               return 1;
+           }
+    break; case ABSY: {
+             // This is a hack and special case, looks like STA always takes an extra cycle here.
+             if(instToName[getInstructionOp()] == "sta")
+               return 1;
+             uint9 mem = std::to_integer<uint8_t>(ram_->load(regs_.PC_+1));
+             if((mem + regs_.Y_) & 0x100)
+               return 1;
+           }
+    break; case INDY: {
+             // This is a hack and special case, looks like STA always takes an extra cycle here.
+             if(instToName[getInstructionOp()] == "sta")
+               return 1;
+             uint9 mem = std::to_integer<uint8_t>(ram_->load(std::to_integer<uint16_t>(ram_->load(regs_.PC_+1))));
+             if((mem + regs_.Y_) & 0x100)
+               return 1;
+           }
+  }
+  return 0;
+}
+
+auto CPU_6502::cycle() -> void {
+  auto addressingMode = resolveAddMode( regs_.PC_ );
+  switch(addressingMode) {
+    break; case IMPL: case ACC: case IMM: case YDATA: case XDATA: case SDATA: case REL: cycleCount_ += 2;
+    break; case ZP: cycleCount_ += (3 + (getInstructionOp() == 0x46 || getInstructionOp() == 0x06 || getInstructionOp() == 0x66 || getInstructionOp() == 0x26 || getInstructionOp() == 0xE6 || getInstructionOp() == 0xC6 ? 2 : 0 ));
+    break; case ZPX: case ZPY: cycleCount_ += (4 + ( getInstructionOp() == 0x56 || getInstructionOp() == 0x16 || getInstructionOp() == 0x76|| getInstructionOp() == 0x36 || getInstructionOp() == 0xF6 || getInstructionOp() == 0xD6 ? 2 : 0 ));
+    break; case ABS: cycleCount_ += (4 + (getInstructionOp() == 0x4E || getInstructionOp() == 0x0E || getInstructionOp() == 0x6E || getInstructionOp() == 0x2E  || getInstructionOp() == 0xEE || getInstructionOp() == 0xCE  ? 2 : 0));
+    break; case ABSADDR: cycleCount_ += 3;
+    break; case ABSX: case ABSY: cycleCount_ += (4 + pageBoundaryPenalty(addressingMode));
+    break; case IND: cycleCount_ += 5;
+    break; case INDX: cycleCount_ += 6;
+    break; case INDY: cycleCount_ += (5 + pageBoundaryPenalty(addressingMode));
+  };
 }
 
 auto CPU_6502::setWriteBackCont() -> void {
@@ -208,5 +260,6 @@ auto CPU_6502::cliOutput() -> std::string {
   output += "  Y[" + std::to_string((uint16) regs_.Y_) + "] S["+ std::to_string((uint16)regs_.S_) +"]\n";
   output += "  P[" + regs_.P_.toString() + "]\n";
   output += "  PC:" + std::to_string(regs_.PC_) + "\n";
+  output += "  Cycle Count: " + std::to_string(cycleCount_) + "\n";
   return output;
 }

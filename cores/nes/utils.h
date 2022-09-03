@@ -93,6 +93,7 @@ struct CPU_State {
     S = std::unique_ptr<uint9>();
     P = std::unique_ptr<uint8>();
     PC = std::unique_ptr<uint16>();
+    cycleCount = std::unique_ptr<uint64_t>();
   }
 
   auto reset() -> void {
@@ -102,6 +103,7 @@ struct CPU_State {
     S.reset(nullptr);
     P.reset(nullptr);
     PC.reset(nullptr);
+    cycleCount.reset(nullptr);
   }
   std::unique_ptr<uint8> A;
   std::unique_ptr<uint8> X;
@@ -109,4 +111,5 @@ struct CPU_State {
   std::unique_ptr<uint9> S;
   std::unique_ptr<uint8> P;
   std::unique_ptr<uint16> PC;
+  std::unique_ptr<uint64_t> cycleCount;
 };

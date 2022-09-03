@@ -20,7 +20,6 @@ using uint16 = Unsigned<16>;
 
 using ram_ptr = std::shared_ptr<NES_RAM>;
 
-
 enum NES_ADDRESS_MODE {
   IMPL, // implicit
   ACC,  // accumulator
@@ -73,6 +72,12 @@ struct CPU_6502 {
 
   auto operator==(const CPU_State& cstate) -> bool {
     bool theSame = true;
+    if(cstate.cycleCount.get()) {
+      theSame &= (*(cstate.cycleCount) == cycleCount_);
+      if(!theSame){
+        std::cout << "Cycle count mismatch " << std::dec << *(cstate.cycleCount) << " " << cycleCount_ << "\n";
+      }
+    }
     if(cstate.A.get()) {
       theSame &= (*(cstate.A) == (uint8)regs_.A_);
       if(!theSame)
@@ -101,7 +106,7 @@ struct CPU_6502 {
     if(cstate.PC.get()) {
       theSame &= (*(cstate.PC) == regs_.PC_);
       if(!theSame)
-        std::cout << "Mismatch PC " << *(cstate.PC) << " " << regs_.PC_ << "\n";
+        std::cout << "Mismatch PC " << std::hex << *(cstate.PC) << " " << regs_.PC_ << "\n";
     }
     return theSame;
   }
@@ -119,7 +124,7 @@ protected:
       IMPL, INDX, IMPL, INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, IND, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, YDATA, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY,YDATA, ABSY, XDATA, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, ACC,  IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPY, ZPY, IMPL, ABSY, SDATA, ABSY, ABSX, ABSX, ABSY, ABSY,
-      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSY, ABSX, ABSX, ABSX,
+      IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, XDATA, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX,
       IMM,  INDX, IMM,  INDX, ZP, ZP, ZP, ZP, IMPL, IMM, ACC, IMM, ABS, ABS, ABS, ABS, REL, INDY, IMPL, INDY, ZPX, ZPX, ZPX, ZPX, IMPL, ABSY, IMPL, ABSY, ABSX, ABSX, ABSX, ABSX
   };
 
@@ -147,6 +152,8 @@ protected:
 
 private:
   auto indexFetch() -> uint16;
+  auto cycle() -> void;
+  auto pageBoundaryPenalty(NES_ADDRESS_MODE mode) -> uint64_t;
 
   inline auto resolveAddMode(uint16 PC) -> NES_ADDRESS_MODE {
      auto instruction = ram_->load(PC);
@@ -161,17 +168,23 @@ private:
   inline auto getInstructionOp() -> size_t {
     return std::to_integer<size_t>(ram_->load(regs_.PC_));
   }
- auto incrementPC() -> void;
+
+  auto incrementPC() -> void;
 
   friend class Instruction;
   std::vector<std::unique_ptr<Instruction>> insts_;
+
+  uint64_t cycleCount_;
+
 
 // Just test helpers
 public:
   auto getInstructionStrings() -> std::vector<std::string> {std::vector<std::string> thing{instToName.begin(),instToName.end()}; return thing; };
   auto setPC(uint16 pc ) -> void { regs_.PC_ = pc; }
+  auto setCycleCount(uint64_t cycleCount) -> void { cycleCount_ = cycleCount; }
   auto setX(uint8 x ) -> void { regs_.X_ = x; }
   auto setY(uint8 y ) -> void { regs_.Y_ = y; }
+
 protected:
   auto popStack() -> uint8 {
     regs_.S_ += 1;
@@ -198,4 +211,7 @@ protected:
     ram_->store(static_cast<size_t>(regs_.S_),std::byte{(uint8_t)data});
     regs_.S_ -= 1;
   }
+
+  // Some instructions have custom increments so we need to take this into account.
+  auto cycleIncrement(uint64_t increment) -> void { cycleCount_ += increment; }
 };

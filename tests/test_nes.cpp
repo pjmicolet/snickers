@@ -1,10 +1,9 @@
 #include "../cores/nes/6502.h"
 #include "../utils/assemblers/asm_utils.h"
 #include "../assemblers/nes/nes.h"
-#include "test_utils.h"
 #include "../cores/nes/nes_rom.h"
+#include "test_utils.h"
 #include <fstream>
-
 
 auto parseLog(const std::filesystem::path &path) -> std::vector<std::vector<uint16_t>> {
   std::ifstream log(path, std::ios::binary);
@@ -18,6 +17,7 @@ auto parseLog(const std::filesystem::path &path) -> std::vector<std::vector<uint
                     static_cast<uint16_t>(stringToInt(split[3])),
                     static_cast<uint16_t>(stringToInt(split[4])),
                     static_cast<uint16_t>(stringToInt(split[5])),
+                    static_cast<uint16_t>(std::stoi(static_cast<std::string>(split[6]),nullptr, 10)),
           });
   }
   return data;
@@ -477,6 +477,7 @@ auto test_nes_mega() {
 
   write_ram_map(cpu,rom.getProgram(), 0xc000);
   cpu.setPC(0xc000);
+  cpu.setCycleCount(7); // that's how the logs start off
   auto bla = parseLog("log.txt");
   return cpu.debugRun(0xFFFF, bla);
 }
