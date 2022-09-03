@@ -55,32 +55,6 @@ enum NES_DESTINATION {
 
 class Instruction;
 
-struct CPU_State {
-  CPU_State() {
-    A = std::unique_ptr<uint8>();
-    X = std::unique_ptr<uint8>();
-    Y = std::unique_ptr<uint8>();
-    S = std::unique_ptr<uint9>();
-    P = std::unique_ptr<uint8>();
-    PC = std::unique_ptr<uint16>();
-  }
-
-  auto reset() -> void {
-    A.reset(nullptr);
-    X.reset(nullptr);
-    Y.reset(nullptr);
-    S.reset(nullptr);
-    P.reset(nullptr);
-    PC.reset(nullptr);
-  }
-  std::unique_ptr<uint8> A;
-  std::unique_ptr<uint8> X;
-  std::unique_ptr<uint8> Y;
-  std::unique_ptr<uint9> S;
-  std::unique_ptr<uint8> P;
-  std::unique_ptr<uint16> PC;
-};
-
 struct CPU_6502 {
   CPU_6502();
 
