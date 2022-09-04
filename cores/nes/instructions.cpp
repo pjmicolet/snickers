@@ -124,9 +124,7 @@ void Bpl::execute() {
   }
 }
 
-void Brk::execute() {
-  cycleIncrement(5); //Brk takes 7 cycles, so 5 extra compared to minimum IMM inst
-}
+void Brk::execute() {}
 
 void Bvc::execute() {
   if(!regs_.P_.isOverflowSet()) {
@@ -194,7 +192,6 @@ void Dcp::execute() {
   regs_.P_.setCarry(carry);
   regs_.P_.setZero(equal);
   regs_.P_.setNegative(neg);
-  cycleIncrement(2);
 }
 void Dec::execute() {
   wbc_ = (data_ - 1);
@@ -242,7 +239,6 @@ void Isc::execute() {
   regs_.P_.setNegative(regs_.A_.isNegative());
   regs_.P_.setOverflow(regs_.A_.hasOverflown());
   wbc_ = data;
-  cycleIncrement(2);
 }
 
 void Jmp::execute() {
@@ -253,8 +249,7 @@ void Jmp::execute() {
 void Jsr::execute() {
   pushStack(regs_.PC_+2);
   regs_.PC_ = data_;
-  branchTaken_ = PCIncrementType::FORCE_JUMP;
-  cycleIncrement(3);
+  branchTaken_ = PCIncrementType::FORCE_JUMP_SUBROUTINE;
 }
 
 void Kil::execute() {}
@@ -302,21 +297,17 @@ void Ora::execute() {
 
 void Pha::execute() {
   wbc_ = data_;
-  cycleIncrement(1);
 }
 void Php::execute() {
   wbc_ = regs_.P_.toUint8() | 0b110000;
-  cycleIncrement(1);
 }
 void Pla::execute() {
   wbc_ = popStack();
   regs_.P_.setNegative(wbc_.isNegative());
   regs_.P_.setZero(wbc_.isZero());
-  cycleIncrement(2);
 }
 void Plp::execute() {
   wbc_ = popStack();
-  cycleIncrement(2);
 }
 void Rla::execute() {
   uint8 oldP = regs_.P_.isCarrySet();
@@ -326,7 +317,6 @@ void Rla::execute() {
   regs_.P_.setZero(regs_.A_.isZero());
   regs_.P_.setNegative(regs_.A_.isNegative());
   wbc_ = data;
-  cycleIncrement(2);
 }
 
 void Rra::execute() {
@@ -340,7 +330,6 @@ void Rra::execute() {
   regs_.P_.setNegative(regs_.A_.isNegative());
   regs_.P_.setOverflow(regs_.A_.hasOverflown());
   wbc_ = data;
-  cycleIncrement(2);
 }
 
 void Rol::execute() {
@@ -363,7 +352,6 @@ void Rti::execute() {
   regs_.PC_ = pc;
   branchTaken_ = PCIncrementType::FORCE_JUMP;
   // Takes an extra 4 cycles
-  cycleIncrement(4);
 }
 
 // You have to mark the branch taken
@@ -371,7 +359,6 @@ void Rts::execute() {
   regs_.PC_ = popPCFromStack() + 1;
   branchTaken_ = PCIncrementType::FORCE_JUMP;
   // Takes an extra 4 cycles
-  cycleIncrement(4);
 }
 
 void Sbc::execute() {
@@ -416,7 +403,6 @@ void Slo::execute() {
   regs_.P_.setZero(regs_.A_.isZero());
   regs_.P_.setNegative(regs_.A_.isNegative());
   wbc_ = data;
-  cycleIncrement(2);
 }
 void Sre::execute() {
   regs_.P_.setCarry(data_&0x1);
@@ -425,7 +411,6 @@ void Sre::execute() {
   regs_.P_.setZero(regs_.A_.isZero());
   regs_.P_.setNegative(regs_.A_.isNegative());
   wbc_ = data;
-  cycleIncrement(2);
 }
 void Sta::execute() {
   wbc_ = (uint8)regs_.A_; // fix this

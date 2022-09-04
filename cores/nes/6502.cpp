@@ -200,6 +200,25 @@ auto CPU_6502::cycle() -> void {
     cycleCount_++;
     boundaryCrossed_ = false;
   }
+  specialCycle();
+}
+
+// Some instructions don't behave exactly like the others (just take longer than the average for example)
+// Rather than having each instruction have access to the cycleCount, do the increment here.
+auto CPU_6502::specialCycle() -> void {
+  auto instructionOp = getInstructionOp();
+  switch(instructionOp) {
+    break; case 0x00: cycleCount_ += 5; // BRK
+    break; case 0xC3: case 0xC7: case 0xD7: case 0xD3: case 0xCF: case 0xDF: case 0xDB: cycleCount_ += 2; // DCP
+    break; case 0xE7: case 0xF7: case 0xE3: case 0xF3: case 0xEF: case 0xFF: case 0xFB: cycleCount_ += 2; // ISC
+    break; case 0x48: case 0x08: cycleCount_++; //PHA, PHP
+    break; case 0x68: case 0x28: cycleCount_+=2; // PLA, PLP
+    break; case 0x27: case 0x37: case 0x23: case 0x33: case 0x2F: case 0x3F: case 0x3B: cycleCount_ += 2; // RLA
+    break; case 0x67: case 0x77: case 0x63: case 0x73: case 0x6F: case 0x7F: case 0x7B: cycleCount_ += 2; // RRA
+    break; case 0x07: case 0x17: case 0x03: case 0x13: case 0x0F: case 0x1F: case 0x1B: cycleCount_ += 2; // SLO
+    break; case 0x47: case 0x57: case 0x43: case 0x53: case 0x4F: case 0x5F: case 0x5B: cycleCount_ += 2; // SRE
+    break; case 0x40: case 0x60: cycleCount_ += 4; //RTI, RTS
+  }
 }
 
 auto CPU_6502::setWriteBackCont() -> void {
@@ -220,6 +239,8 @@ auto CPU_6502::incrementPC() -> void {
   if(branchTaken_ != PCIncrementType::SIMPLE_INCREMENT) {
     if(branchTaken_ == PCIncrementType::BRANCH_TAKEN)
       cycleCount_++;
+    if(branchTaken_ == PCIncrementType::FORCE_JUMP_SUBROUTINE)
+      cycleCount_ += 3;
     branchTaken_ = PCIncrementType::SIMPLE_INCREMENT;
     return;
   }

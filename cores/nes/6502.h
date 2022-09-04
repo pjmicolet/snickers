@@ -10,6 +10,13 @@
 #include <array>
 #include <iostream>
 
+// The 6502 code doesn't deal with the instructions.
+// Instead it represents the state of the CPU itself, and also provides the code needed to
+// 1) Fetch and store data
+// 2) Fetch instructions
+// 3) Keep track of the PC, if branches were taken, if page boundaries were crossed
+// 4) Take care of cycle counts
+
 using int8 = Integer<8>;
 using int6 = Integer<6>;
 using int16 = Integer<16>;
@@ -155,6 +162,7 @@ protected:
 private:
   auto indexFetch() -> uint16;
   auto cycle() -> void;
+  auto specialCycle() -> void;
   auto pageBoundaryPenaltySpecial() -> uint64_t;
 
   inline auto resolveAddMode(uint16 PC) -> NES_ADDRESS_MODE {
