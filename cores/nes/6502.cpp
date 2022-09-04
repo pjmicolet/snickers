@@ -15,7 +15,7 @@ CPU_6502::CPU_6502() {
     BanksAndSize cfg = {banks, 0xC808};
     ram_ = std::make_shared<NES_RAM>(cfg);
     wbc_ = WriteBackCont{ram_};
-    branchTaken_ = false;
+    branchTaken_ = PCIncrementType::SIMPLE_INCREMENT;
     bool debug = false;
     INSINST(Brk) INSINST(Ora) INSINST(Kil) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Php) INSINST(Ora) INSINST(Asl) INSINST(Anc) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Bpl) INSINST(Ora) INSINST(Kil) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Clc) INSINST(Ora) INSINST(Nop) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo)
     INSINST(Jsr) INSINST(And) INSINST(Kil) INSINST(Rla) INSINST(Bit) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Plp) INSINST(And) INSINST(Rol) INSINST(Anc) INSINST(Bit) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Bmi) INSINST(And) INSINST(Kil) INSINST(Rla) INSINST(Nop) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Sec) INSINST(And) INSINST(Nop) INSINST(Rla) INSINST(Nop) INSINST(And) INSINST(Rol) INSINST(Rla)
@@ -211,8 +211,10 @@ auto CPU_6502::setWriteBackCont() -> void {
 }
 
 auto CPU_6502::incrementPC() -> void {
-  if(branchTaken_) {
-    branchTaken_ = false;
+  if(branchTaken_ != PCIncrementType::SIMPLE_INCREMENT) {
+    if(branchTaken_ == PCIncrementType::BRANCH_TAKEN)
+      cycleCount_++;
+    branchTaken_ = PCIncrementType::SIMPLE_INCREMENT;
     return;
   }
   auto addressingMode = resolveAddMode( regs_.PC_ );

@@ -1,6 +1,7 @@
 #pragma once
 #include "../../utils/integer/integer.h"
 #include "nes_ram.h"
+#include "jump_types.h"
 #include "instructions.h"
 #include "registers.h"
 #include "utils.h"
@@ -114,7 +115,7 @@ struct CPU_6502 {
 protected:
   Registers regs_;
   WriteBackCont wbc_;
-  bool branchTaken_;
+  PCIncrementType branchTaken_;
 
   // clang-format off
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {

@@ -64,8 +64,7 @@ void Asl::execute() {
 void Axs::execute() {}
 void Bcc::execute() {
   if(!regs_.P_.isCarrySet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ +2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + data_ + 2;
@@ -74,8 +73,7 @@ void Bcc::execute() {
 
 void Bcs::execute() {
   if(regs_.P_.isCarrySet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + data_ + 2;
@@ -84,9 +82,7 @@ void Bcs::execute() {
 
 void Beq::execute() {
   if(regs_.P_.isZeroSet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
-
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) +  static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
@@ -103,8 +99,7 @@ void Bit::execute() {
 
 void Bmi::execute() {
   if(regs_.P_.isNegSet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
@@ -113,8 +108,7 @@ void Bmi::execute() {
 
 void Bne::execute() {
   if(!regs_.P_.isZeroSet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
@@ -123,8 +117,7 @@ void Bne::execute() {
 
 void Bpl::execute() {
   if(!regs_.P_.isNegSet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
@@ -137,8 +130,7 @@ void Brk::execute() {
 
 void Bvc::execute() {
   if(!regs_.P_.isOverflowSet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
@@ -146,8 +138,7 @@ void Bvc::execute() {
 }
 void Bvs::execute() {
   if(regs_.P_.isOverflowSet()) {
-    branchTaken_ = true;
-    cycleIncrement(1);
+    branchTaken_ = PCIncrementType::BRANCH_TAKEN;
     if(((regs_.PC_ + 2 & 0xFF) + static_cast<int8>(data_)) & 0x100)
       cycleIncrement(1);
     regs_.PC_ = regs_.PC_ + static_cast<int8>(data_) + 2;
@@ -255,14 +246,14 @@ void Isc::execute() {
 }
 
 void Jmp::execute() {
-  branchTaken_ = true;
+  branchTaken_ = PCIncrementType::FORCE_JUMP;
   regs_.PC_ = data_;
 }
 
 void Jsr::execute() {
   pushStack(regs_.PC_+2);
   regs_.PC_ = data_;
-  branchTaken_ = true;
+  branchTaken_ = PCIncrementType::FORCE_JUMP;
   cycleIncrement(3);
 }
 
@@ -370,7 +361,7 @@ void Rti::execute() {
   uint16 pc = popPCFromStack();
   regs_.P_ = statusReg;
   regs_.PC_ = pc;
-  branchTaken_ = true;
+  branchTaken_ = PCIncrementType::FORCE_JUMP;
   // Takes an extra 4 cycles
   cycleIncrement(4);
 }
@@ -378,7 +369,7 @@ void Rti::execute() {
 // You have to mark the branch taken
 void Rts::execute() {
   regs_.PC_ = popPCFromStack() + 1;
-  branchTaken_ = true;
+  branchTaken_ = PCIncrementType::FORCE_JUMP;
   // Takes an extra 4 cycles
   cycleIncrement(4);
 }
