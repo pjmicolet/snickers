@@ -189,11 +189,13 @@ private:
 
 // Just test helpers
 public:
+  auto setAutoPC() { regs_.PC_ = static_cast<uint16_t>(ram_->load(0xFFFC))|static_cast<uint16_t>(ram_->load(0xFFFD)) << 8; }
   auto getInstructionStrings() -> std::vector<std::string> {std::vector<std::string> thing{instToName.begin(),instToName.end()}; return thing; };
   auto setPC(uint16 pc ) -> void { regs_.PC_ = pc; }
   auto setCycleCount(uint64_t cycleCount) -> void { cycleCount_ = cycleCount; }
   auto setX(uint8 x ) -> void { regs_.X_ = x; }
   auto setY(uint8 y ) -> void { regs_.Y_ = y; }
+  auto getRAM() -> ram_ptr { return ram_; }
 
 protected:
   auto popStack() -> uint8 {

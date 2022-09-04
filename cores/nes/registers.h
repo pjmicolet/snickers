@@ -112,3 +112,31 @@ struct Registers {
     A_ = 0; X_ = 0; Y_ = 0; S_ = 0x1FD; P_.clear(); P_ = 36; PC_ = 0;
   }
 };
+
+struct PPUCTRL {
+  PPUCTRL(const std::byte& b) : byte_(b) {};
+  auto getNameTable() -> uint8;
+  auto getVRAMIncr() -> uint8;
+  auto getSpritePattern() -> uint8;
+  auto getPatternTableAddress() -> uint8;
+  auto getSpriteSize() -> uint8;
+  auto isPPUMasterSlave() -> uint8;
+  auto generateNMI() -> uint8;
+
+private:
+  const std::byte& byte_;
+};
+
+struct PPUMASK {
+  PPUMASK(const std::byte& b) : byte_(b) {};
+  auto isGrayScale() -> uint8;
+  auto hideLeftmostBG() -> uint8;
+  auto hideLeftmostPixel() -> uint8;
+  auto showBG() -> uint8;
+  auto showSprites() -> uint8;
+  auto emphasizeRed() -> uint8;
+  auto emphasizeGreen() -> uint8;
+  auto emphasizeBlue() -> uint8;
+private:
+  const std::byte& byte_;
+};

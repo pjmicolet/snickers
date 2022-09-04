@@ -16,7 +16,7 @@ CPU_6502::CPU_6502() {
     ram_ = std::make_shared<NES_RAM>(cfg);
     wbc_ = WriteBackCont{ram_};
     branchTaken_ = PCIncrementType::SIMPLE_INCREMENT;
-    bool debug = false;
+    bool debug = true;
     INSINST(Brk) INSINST(Ora) INSINST(Kil) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Php) INSINST(Ora) INSINST(Asl) INSINST(Anc) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Bpl) INSINST(Ora) INSINST(Kil) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo) INSINST(Clc) INSINST(Ora) INSINST(Nop) INSINST(Slo) INSINST(Nop) INSINST(Ora) INSINST(Asl) INSINST(Slo)
     INSINST(Jsr) INSINST(And) INSINST(Kil) INSINST(Rla) INSINST(Bit) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Plp) INSINST(And) INSINST(Rol) INSINST(Anc) INSINST(Bit) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Bmi) INSINST(And) INSINST(Kil) INSINST(Rla) INSINST(Nop) INSINST(And) INSINST(Rol) INSINST(Rla) INSINST(Sec) INSINST(And) INSINST(Nop) INSINST(Rla) INSINST(Nop) INSINST(And) INSINST(Rol) INSINST(Rla)
     INSINST(Rti) INSINST(Eor) INSINST(Kil) INSINST(Sre) INSINST(Nop) INSINST(Eor) INSINST(Lsr) INSINST(Sre) INSINST(Pha) INSINST(Eor) INSINST(Lsr) INSINST(Alr) INSINST(Jmp) INSINST(Eor) INSINST(Lsr) INSINST(Sre) INSINST(Bvc) INSINST(Eor) INSINST(Kil) INSINST(Sre) INSINST(Nop) INSINST(Eor) INSINST(Lsr) INSINST(Sre) INSINST(Cli) INSINST(Eor) INSINST(Nop) INSINST(Sre) INSINST(Nop) INSINST(Eor) INSINST(Lsr) INSINST(Sre)
@@ -84,6 +84,7 @@ inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uin
 }
 
 auto CPU_6502::runProgram(size_t until) -> void {
+  uint64_t instCount = 0;
   while(static_cast<size_t>(regs_.PC_) < until){
     execute();
     incrementPC();

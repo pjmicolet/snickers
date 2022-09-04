@@ -1,4 +1,5 @@
 #include "registers.h"
+#include <cstddef>
 
 StatusReg::StatusReg() : status_(0x24) {}
 
@@ -201,3 +202,78 @@ auto Reg::isZero() -> bool {auto tmp = isZero_; isZero_ = false; return tmp;}
 auto Reg::hasOverflown() -> bool {auto tmp = overflow_; overflow_ = false; return tmp;}
 auto Reg::isNegative() -> bool {auto tmp = isNeg_; isNeg_ = false; return tmp;}
 auto Reg::keepCarry() -> void {carry_ = true;}
+
+auto PPUCTRL::getNameTable() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return data & 0b11;
+}
+
+auto PPUCTRL::getVRAMIncr() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return ( data & 0b100 ) >> 2;
+}
+
+auto PPUCTRL::getSpritePattern() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data & 0b1000) >> 3;
+}
+
+auto PPUCTRL::getPatternTableAddress() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b10000) >> 4;
+}
+
+auto PPUCTRL::getSpriteSize() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b100000) >> 5;
+}
+
+auto PPUCTRL::isPPUMasterSlave() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b1000000) >> 6;
+}
+
+auto PPUCTRL::generateNMI() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b10000000) >> 7;
+}
+
+auto PPUMASK::isGrayScale() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return data & 0b1;
+}
+
+auto PPUMASK::hideLeftmostBG() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return ( data & 0b10 ) >> 1;
+}
+
+auto PPUMASK::hideLeftmostPixel() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data & 0b100) >> 2;
+}
+
+auto PPUMASK::showBG() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b1000) >> 3;
+}
+
+auto PPUMASK::showSprites() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b10000) >> 4;
+}
+
+auto PPUMASK::emphasizeRed() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b100000) >> 5;
+}
+
+auto PPUMASK::emphasizeGreen() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b1000000) >> 6;
+}
+
+auto PPUMASK::emphasizeBlue() -> uint8 {
+  uint8 data = std::to_integer<uint8_t>(byte_);
+  return (data &0b10000000) >> 7;
+}
