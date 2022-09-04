@@ -196,6 +196,10 @@ auto CPU_6502::cycle() -> void {
     break; case INDX: cycleCount_ += 6;
     break; case INDY: cycleCount_ += (5 + pageBoundaryPenaltySpecial());
   };
+  if(boundaryCrossed_) {
+    cycleCount_++;
+    boundaryCrossed_ = false;
+  }
 }
 
 auto CPU_6502::setWriteBackCont() -> void {
@@ -213,10 +217,6 @@ auto CPU_6502::setWriteBackCont() -> void {
 }
 
 auto CPU_6502::incrementPC() -> void {
-  if(boundaryCrossed_) {
-    cycleCount_++;
-    boundaryCrossed_ = false;
-  }
   if(branchTaken_ != PCIncrementType::SIMPLE_INCREMENT) {
     if(branchTaken_ == PCIncrementType::BRANCH_TAKEN)
       cycleCount_++;
