@@ -116,6 +116,7 @@ protected:
   Registers regs_;
   WriteBackCont wbc_;
   PCIncrementType branchTaken_;
+  bool boundaryCrossed_;
 
   // clang-format off
   std::array<NES_ADDRESS_MODE, 256> instToAddressMode = {
@@ -154,7 +155,7 @@ protected:
 private:
   auto indexFetch() -> uint16;
   auto cycle() -> void;
-  auto pageBoundaryPenalty(NES_ADDRESS_MODE mode) -> uint64_t;
+  auto pageBoundaryPenaltySpecial() -> uint64_t;
 
   inline auto resolveAddMode(uint16 PC) -> NES_ADDRESS_MODE {
      auto instruction = ram_->load(PC);

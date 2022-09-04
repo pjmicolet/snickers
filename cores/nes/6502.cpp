@@ -27,6 +27,7 @@ CPU_6502::CPU_6502() {
     INSINST(Cpx) INSINST(Sbc) INSINST(Nop) INSINST(Isc) INSINST(Cpx) INSINST(Sbc) INSINST(Inc) INSINST(Isc) INSINST(Inx) INSINST(Sbc) INSINST(Nop) INSINST(Sbc) INSINST(Cpx) INSINST(Sbc) INSINST(Inc) INSINST(Isc) INSINST(Beq) INSINST(Sbc) INSINST(Kil) INSINST(Isc) INSINST(Nop) INSINST(Sbc) INSINST(Inc) INSINST(Isc) INSINST(Sed) INSINST(Sbc) INSINST(Nop) INSINST(Isc) INSINST(Nop) INSINST(Sbc) INSINST(Inc) INSINST(Isc)
 
     cycleCount_ = 0;
+    boundaryCrossed_ = false;
 }
 
 // These functions are just to handle the different ways of fetching data for 8 and 16 bit data
@@ -49,6 +50,15 @@ inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1, bool wrap
 inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16 {
   uint16 baseAddr = (ramToAddress(ram, PC+1) + X) & 0xFF;
   return twoByteAddress(ram,baseAddr,0, true);
+}
+
+inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y, bool& boundary) -> uint16 {
+  auto baseAddr = ramToAddress(ram, PC+1);
+  auto pcAddr = twoByteAddress(ram, baseAddr, 0, true);
+  if((pcAddr & 0xFF00) != ((pcAddr+Y) & 0xFF00)) {
+    boundary = true;
+  }
+  return pcAddr + Y;
 }
 
 inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16 {
@@ -138,45 +148,37 @@ auto CPU_6502::dataFetch() -> uint16 {
     break; case REL: data = ram_->load(regs_.PC_+1);
     break; case ABS: data = ram_->load(twoByteAddress(ram_, regs_.PC_));
     break; case ABSADDR: return twoByteAddress(ram_, regs_.PC_);
-    break; case ABSX: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.X_));
-    break; case ABSY: data = ram_->load(twoByteAddress(ram_, regs_.PC_)+static_cast<uint16>(regs_.Y_));
+    break; case ABSX: {
+             auto addressFromInst = twoByteAddress(ram_,regs_.PC_);
+             auto resolvedAddress = addressFromInst + static_cast<uint16>(regs_.X_);
+             if((resolvedAddress & 0xFF00 ) !=(addressFromInst & 0xFF00))
+               boundaryCrossed_ = true;
+             data = ram_->load(resolvedAddress);
+    }
+    break; case ABSY: {
+             auto addressFromInst = twoByteAddress(ram_,regs_.PC_);
+             auto resolvedAddress = addressFromInst + static_cast<uint16>(regs_.Y_);
+             data = ram_->load(resolvedAddress);
+             if((resolvedAddress & 0xFF00 ) !=(addressFromInst & 0xFF00))
+               boundaryCrossed_ = true;
+    }
     break; case INDX: data = ram_->load(indirectX(ram_, regs_.PC_,regs_.X_));
-    break; case INDY: data = ram_->load(indirectY(ram_, regs_.PC_,regs_.Y_));
+    break; case INDY: data = ram_->load(indirectY(ram_, regs_.PC_,regs_.Y_,boundaryCrossed_));
     break; case IND:  return resolveIndirectAddress(ram_, regs_.PC_, 0);
     break; default: throw( "This is wrong!" );
   };
   return std::to_integer<uint16_t>(data);
 }
 
-auto CPU_6502::pageBoundaryPenalty(NES_ADDRESS_MODE mode) -> uint64_t {
-  switch(mode) {
-    break; case ABSX: {
-             // LSR is always +3
-             if(getInstructionOp() == 0x5E || getInstructionOp() == 0x1E || getInstructionOp() == 0x7E || getInstructionOp() == 0x3E || getInstructionOp() == 0xFE || getInstructionOp() == 0xDE)
-               return 3;
-             // This is a hack and special case, looks like STA always takes an extra cycle here. so do a few NOPs
-             if(instToName[getInstructionOp()] == "sta")
-               return 1;
-             uint9 mem = std::to_integer<uint8_t>(ram_->load(regs_.PC_+1));
-             if((mem + regs_.X_) & 0x100)
-               return 1;
-           }
-    break; case ABSY: {
-             // This is a hack and special case, looks like STA always takes an extra cycle here.
-             if(instToName[getInstructionOp()] == "sta")
-               return 1;
-             uint9 mem = std::to_integer<uint8_t>(ram_->load(regs_.PC_+1));
-             if((mem + regs_.Y_) & 0x100)
-               return 1;
-           }
-    break; case INDY: {
-             // This is a hack and special case, looks like STA always takes an extra cycle here.
-             if(instToName[getInstructionOp()] == "sta")
-               return 1;
-             uint9 mem = std::to_integer<uint8_t>(ram_->load(std::to_integer<uint16_t>(ram_->load(regs_.PC_+1))));
-             if((mem + regs_.Y_) & 0x100)
-               return 1;
-           }
+auto CPU_6502::pageBoundaryPenaltySpecial() -> uint64_t {
+  if(getInstructionOp() == 0x5E || getInstructionOp() == 0x1E || getInstructionOp() == 0x7E || getInstructionOp() == 0x3E || getInstructionOp() == 0xFE || getInstructionOp() == 0xDE) {
+    boundaryCrossed_ = false;
+    return 3;
+  }
+  // This is a hack and special case, looks like STA always takes an extra cycle here. so do a few NOPs
+  if(instToName[getInstructionOp()] == "sta") {
+    boundaryCrossed_ = false;
+    return 1;
   }
   return 0;
 }
@@ -189,10 +191,10 @@ auto CPU_6502::cycle() -> void {
     break; case ZPX: case ZPY: cycleCount_ += (4 + ( getInstructionOp() == 0x56 || getInstructionOp() == 0x16 || getInstructionOp() == 0x76|| getInstructionOp() == 0x36 || getInstructionOp() == 0xF6 || getInstructionOp() == 0xD6 ? 2 : 0 ));
     break; case ABS: cycleCount_ += (4 + (getInstructionOp() == 0x4E || getInstructionOp() == 0x0E || getInstructionOp() == 0x6E || getInstructionOp() == 0x2E  || getInstructionOp() == 0xEE || getInstructionOp() == 0xCE  ? 2 : 0));
     break; case ABSADDR: cycleCount_ += 3;
-    break; case ABSX: case ABSY: cycleCount_ += (4 + pageBoundaryPenalty(addressingMode));
+    break; case ABSX: case ABSY: cycleCount_ += (4 + pageBoundaryPenaltySpecial());
     break; case IND: cycleCount_ += 5;
     break; case INDX: cycleCount_ += 6;
-    break; case INDY: cycleCount_ += (5 + pageBoundaryPenalty(addressingMode));
+    break; case INDY: cycleCount_ += (5 + pageBoundaryPenaltySpecial());
   };
 }
 
@@ -211,6 +213,10 @@ auto CPU_6502::setWriteBackCont() -> void {
 }
 
 auto CPU_6502::incrementPC() -> void {
+  if(boundaryCrossed_) {
+    cycleCount_++;
+    boundaryCrossed_ = false;
+  }
   if(branchTaken_ != PCIncrementType::SIMPLE_INCREMENT) {
     if(branchTaken_ == PCIncrementType::BRANCH_TAKEN)
       cycleCount_++;
