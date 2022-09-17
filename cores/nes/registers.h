@@ -1,6 +1,7 @@
 #pragma once
 #include "../../utils/integer/integer.h"
 #include <bitset>
+#include <cstddef>
 
 using int8 = Integer<8>;
 using int6 = Integer<6>;
