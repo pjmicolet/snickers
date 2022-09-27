@@ -47,3 +47,13 @@ auto NES_RAM::store(const unsigned int index, const std::byte data) noexcept(DON
 
   ram_[bankIndex.first][bankIndex.second] = data;
 }
+
+[[nodiscard]] auto NES_RAM::load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte& {
+  auto bankIndex = calculateBank(index);
+  return ram_[bankIndex.first][bankIndex.second].load();
+};
+
+//TODO: fix this indirection
+auto NES_RAM::getBank(unsigned int index) const noexcept -> bankIndexPair {
+  return calculateBank(index);
+}

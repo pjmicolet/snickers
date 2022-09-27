@@ -8,6 +8,7 @@
 #include <algorithm>
 #include "cli_tools.h"
 #include "../cores/nes/6502.h"
+#include "../cores/nes/memory_io.h"
 #include "../assemblers/nes/nes.h"
 
 static int quit_flag;
@@ -26,7 +27,8 @@ auto write_ram_map(CPU_6502& cpu, std::vector<std::byte>& bytes, std::string& as
 int main(int argc, char *argv[])
 {
     int num = 0;
-    CPU_6502 bla{};
+    MemIO mem{};
+    CPU_6502 bla{mem.getCPURamIO()};
     NesAssembler assembler{};
 
     /* initialize your non-curses data structures here */

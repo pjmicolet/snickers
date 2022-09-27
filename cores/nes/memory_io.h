@@ -36,10 +36,19 @@ struct CPURamIO {
   CPURamIO(NES_RAM& ram, PPU_RAM& ppuRam) : ram_(&ram), ppuRam_(&ppuRam) {};
   [[nodiscard]] auto load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte &;
   auto store(const unsigned int index, const std::byte data) noexcept(DONT_THROW) -> void;
+  auto clear() -> void;
+  auto getNmiOccured() -> bool { return *nmiOccured_; }
+  auto getNmiOutput() -> bool { return *nmiOutput_; }
+  auto setNmiOccured(bool b) -> void { *nmiOccured_ = b; }
+  auto setNmiOutput(bool b) -> void { *nmiOutput_ = b; }
 
 protected:
   std::shared_ptr<NES_RAM> ram_;
   std::shared_ptr<PPU_RAM> ppuRam_;
+  std::shared_ptr<bool> nmiOccured_;
+  std::shared_ptr<bool> nmiOutput_;
+  std::shared_ptr<bool> triggeredDMA_;
+  std::shared_ptr<oamTables> oamDMA_;
 private:
   friend class MemIO;
 };
@@ -49,23 +58,32 @@ struct PPURamIO {
   PPURamIO(NES_RAM& ram, PPU_RAM& ppuRam) : ram_(&ram), ppuRam_(&ppuRam) {};
   [[nodiscard]] auto load(const unsigned int index) noexcept(DONT_THROW) -> const std::byte &;
   auto store(const unsigned int index, const std::byte data) noexcept(DONT_THROW) -> void;
+  auto getNmiOccured() -> bool { return *nmiOccured_; }
+  auto getNmiOutput() -> bool { return *nmiOutput_; }
+  auto setNmiOccured(bool b) -> void { *nmiOccured_ = b; }
+  auto setNmiOutput(bool b) -> void { *nmiOutput_ = b; }
 protected:
   std::shared_ptr<NES_RAM> ram_;
   std::shared_ptr<PPU_RAM> ppuRam_;
+  std::shared_ptr<bool> nmiOccured_;
+  std::shared_ptr<bool> nmiOutput_;
+  std::shared_ptr<oamTables> oamDMA_;
 private:
   friend class MemIO;
 };
 
 struct MemIO {
   MemIO();
-  auto getCPURamIO() -> const CPURamIO &;
-  auto getPPURamIO() -> const PPURamIO &;
+  auto getCPURamIO() -> std::shared_ptr<CPURamIO>;
+  auto getPPURamIO() -> std::shared_ptr<PPURamIO>;
 private:
+  //TODO: does it really have to be all ptrs...
   std::shared_ptr<NES_RAM> cpuRam_;
   std::shared_ptr<PPU_RAM> ppuRam_;
-  CPURamIO cpuRamIO_;
-  PPURamIO ppuRamIO_;
-  bool nmiOccured_;
-  bool nmiOutput_;
-  bool triggeredDMA_;
+  std::shared_ptr<CPURamIO> cpuRamIO_;
+  std::shared_ptr<PPURamIO> ppuRamIO_;
+  std::shared_ptr<bool> nmiOccured_;
+  std::shared_ptr<bool> nmiOutput_;
+  std::shared_ptr<bool> triggeredDMA_;
+  std::shared_ptr<oamTables> oamDMA_;
 };

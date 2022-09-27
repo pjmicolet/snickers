@@ -3,6 +3,7 @@
 #include "../../utils/integer/integer.h"
 #include "nes_ram.h"
 #include "registers.h"
+#include "memory_io.h"
 #include <memory>
 #include <vector>
 
@@ -32,7 +33,7 @@ using uint16 = Unsigned<16>;
 struct WriteBackCont {
   WriteBackCont();
 
-  WriteBackCont(std::shared_ptr<NES_RAM> ram);
+  WriteBackCont(std::shared_ptr<CPURamIO> ram);
 
   auto reset() -> void;
 
@@ -63,7 +64,7 @@ struct WriteBackCont {
   auto isNegative() -> bool;
 
   private:
-    std::shared_ptr<NES_RAM> ram_;
+    std::shared_ptr<CPURamIO> ram_;
     uint16_t memAddr_ = 0;
     Reg* ptr = nullptr;
     uint9* stptr = nullptr;

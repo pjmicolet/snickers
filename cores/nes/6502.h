@@ -4,7 +4,9 @@
 #include "jump_types.h"
 #include "instructions.h"
 #include "registers.h"
+#include "memory_io.h"
 #include "utils.h"
+#include "oam.h"
 #include <memory>
 #include <vector>
 #include <array>
@@ -26,7 +28,7 @@ using uint9 = Unsigned<9>;
 using uint6 = Unsigned<6>;
 using uint16 = Unsigned<16>;
 
-using ram_ptr = std::shared_ptr<NES_RAM>;
+using CpuRamPtr = std::shared_ptr<CPURamIO>;
 
 enum NES_ADDRESS_MODE {
   IMPL, // implicit
@@ -61,16 +63,21 @@ enum NES_DESTINATION {
 };
 
 class Instruction;
+class PPU;
 
 struct CPU_6502 {
-  CPU_6502();
+  CPU_6502() {};
+  CPU_6502(CpuRamPtr ram);
 
-  std::shared_ptr<NES_RAM> ram_;
+  CpuRamPtr ram_;
   auto dataFetch() -> uint16;
   auto setWriteBackCont() -> void;
   auto execute() -> void;
   auto printDebug() -> void;
   auto cliOutput() -> std::string;
+  auto initPC() -> void;
+  auto step() -> void;
+  auto nmi() -> void;
   auto runProgram(size_t until) -> void;
   auto debugRun(size_t until, std::vector<std::vector<uint16_t>>& data) -> bool;
   auto clear() -> void {
@@ -160,6 +167,7 @@ protected:
   // clang-format on
 
 private:
+  auto hasNMITriggered() -> bool;
   auto indexFetch() -> uint16;
   auto cycle() -> void;
   auto specialCycle() -> void;
@@ -185,6 +193,8 @@ private:
   std::vector<std::unique_ptr<Instruction>> insts_;
 
   uint64_t cycleCount_;
+  bool nmiLatch_;
+  bool triggeredDMA_;
 
 
 // Just test helpers
@@ -193,9 +203,10 @@ public:
   auto getInstructionStrings() -> std::vector<std::string> {std::vector<std::string> thing{instToName.begin(),instToName.end()}; return thing; };
   auto setPC(uint16 pc ) -> void { regs_.PC_ = pc; }
   auto setCycleCount(uint64_t cycleCount) -> void { cycleCount_ = cycleCount; }
+  auto getCycleCount() -> uint64_t { return cycleCount_; }
   auto setX(uint8 x ) -> void { regs_.X_ = x; }
   auto setY(uint8 y ) -> void { regs_.Y_ = y; }
-  auto getRAM() -> ram_ptr { return ram_; }
+  auto getRAM() -> CpuRamPtr { return ram_; }
 
 protected:
   auto popStack() -> uint8 {

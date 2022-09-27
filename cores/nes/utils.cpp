@@ -11,7 +11,7 @@ using uint16 = Unsigned<16>;
 
 WriteBackCont::WriteBackCont() {}
 
-WriteBackCont::WriteBackCont(std::shared_ptr<NES_RAM> ram)  : ram_(ram) {}
+WriteBackCont::WriteBackCont(std::shared_ptr<CPURamIO> ram)  : ram_(ram) {}
 
 auto WriteBackCont::reset() -> void {
   ptr = nullptr;

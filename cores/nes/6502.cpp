@@ -7,13 +7,7 @@
 #define INSINST(name)\
   insts_.emplace_back(std::make_unique<name>(false,*this));
 
-CPU_6502::CPU_6502() {
-    std::vector<BankInfo> banks{{0x800, 0}, {0x8, 1}, {0x18, 2}, {0x08, 3}, {0xBFE0, 4}};
-
-    // I know there's 0x10000 addresses but technically
-    // these are the only ones that are actually used;
-    BanksAndSize cfg = {banks, 0xC808};
-    ram_ = std::make_shared<NES_RAM>(cfg);
+CPU_6502::CPU_6502(CpuRamPtr ram) : ram_(ram) {
     wbc_ = WriteBackCont{ram_};
     branchTaken_ = PCIncrementType::SIMPLE_INCREMENT;
     bool debug = true;
@@ -28,12 +22,14 @@ CPU_6502::CPU_6502() {
 
     cycleCount_ = 0;
     boundaryCrossed_ = false;
+    nmiLatch_ = false;
+    triggeredDMA_ = false;
 }
 
 // These functions are just to handle the different ways of fetching data for 8 and 16 bit data
-inline auto ramToAddress(ram_ptr& ram, uint16 address) -> uint16 { return std::to_integer<uint16_t>(ram->load(address)); }
+inline auto ramToAddress(CpuRamPtr& ram, uint16 address) -> uint16 { return std::to_integer<uint16_t>(ram->load(address)); }
 
-inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1, bool wrapAround = false) -> uint16 {
+inline auto twoByteAddress(CpuRamPtr& ram, uint16 PC, uint16 offset = 1, bool wrapAround = false) -> uint16 {
   uint16 byteMask = wrapAround ? 0xFF : 0xFFFF;
   auto lowByte = std::to_integer<uint16_t>(ram->load((PC + offset) & byteMask));
   auto highByte = std::to_integer<uint16_t>(ram->load((PC + offset + 1)&byteMask));
@@ -47,12 +43,12 @@ inline auto twoByteAddress(ram_ptr& ram, uint16 PC, uint16 offset = 1, bool wrap
 // that gives you where to get the address
 // load that
 // then you get data from there
-inline auto indirectX(ram_ptr& ram, uint16 PC, uint8 X) -> uint16 {
+inline auto indirectX(CpuRamPtr& ram, uint16 PC, uint8 X) -> uint16 {
   uint16 baseAddr = (ramToAddress(ram, PC+1) + X) & 0xFF;
   return twoByteAddress(ram,baseAddr,0, true);
 }
 
-inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y, bool& boundary) -> uint16 {
+inline auto indirectY(CpuRamPtr& ram, uint16 PC, uint8 Y, bool& boundary) -> uint16 {
   auto baseAddr = ramToAddress(ram, PC+1);
   auto pcAddr = twoByteAddress(ram, baseAddr, 0, true);
   if((pcAddr & 0xFF00) != ((pcAddr+Y) & 0xFF00)) {
@@ -61,13 +57,13 @@ inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y, bool& boundary) -> uint1
   return pcAddr + Y;
 }
 
-inline auto indirectY(ram_ptr& ram, uint16 PC, uint8 Y) -> uint16 {
+inline auto indirectY(CpuRamPtr& ram, uint16 PC, uint8 Y) -> uint16 {
   auto baseAddr = ramToAddress(ram, PC+1);
   auto pcAddr = twoByteAddress(ram, baseAddr, 0, true);
   return pcAddr + Y;
 }
 
-inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uint16 {
+inline auto resolveIndirectAddress(CpuRamPtr& ram, uint16 PC, uint8 offset) -> uint16 {
   auto indirectBytes = twoByteAddress(ram, PC);
 
   uint16_t highByte = 0;
@@ -81,6 +77,19 @@ inline auto resolveIndirectAddress(ram_ptr& ram, uint16 PC, uint8 offset) -> uin
   auto lowByte = std::to_integer<uint16_t>(ram->load(indirectBytes));
 
   return (uint16)(highByte << 8) | (uint16)lowByte;
+}
+
+auto CPU_6502::initPC() -> void {
+  regs_.PC_ = std::to_integer<uint16_t>(ram_->load(0xFFFC)) | std::to_integer<uint16_t>(ram_->load(0xFFFD)) << 8;
+}
+auto CPU_6502::step() -> void {
+    triggeredDMA_ = false;
+    int extraDMA = cycleCount_ % 2 == 0 ? 1 : 0;
+    execute();
+    incrementPC();
+    if(triggeredDMA_) {
+      cycleCount_ += 513 + extraDMA;
+    }
 }
 
 auto CPU_6502::runProgram(size_t until) -> void {
@@ -292,4 +301,24 @@ auto CPU_6502::cliOutput() -> std::string {
   output += "  PC:" + std::to_string(regs_.PC_) + "\n";
   output += "  Cycle Count: " + std::to_string(cycleCount_) + "\n";
   return output;
+}
+
+auto CPU_6502::hasNMITriggered() -> bool {
+  // Reset the latch on this being false
+  if(!(ram_->getNmiOccured() && ram_->getNmiOutput()))
+    nmiLatch_ = false;
+  // If we had both, xor with latch, this means that at most it will trigger once.
+  auto result = (ram_->getNmiOccured() && ram_->getNmiOutput()) ^ nmiLatch_;
+  // Store the last result, most cases will be false
+  nmiLatch_ = (ram_->getNmiOccured() && ram_->getNmiOutput());
+  return result;
+}
+
+auto CPU_6502::nmi() -> void {
+  if(hasNMITriggered()) {
+    pushStack(regs_.PC_);
+    pushStack(static_cast<uint16>(regs_.P_.toUint8()));
+    regs_.PC_ = std::to_integer<uint16_t>(ram_->load(0xFFFA)) | std::to_integer<uint16_t>(ram_->load(0xFFFB)) << 8;
+    cycleCount_+=7;
+  }
 }

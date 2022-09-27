@@ -1,4 +1,5 @@
 #include "../cores/nes/6502.h"
+#include "../cores/nes/memory_io.h"
 #include "../utils/assemblers/asm_utils.h"
 #include "../assemblers/nes/nes.h"
 #include "../cores/nes/nes_rom.h"
@@ -51,7 +52,8 @@ auto write_ram_map(CPU_6502& cpu, std::span<std::byte> bytes, size_t offset = 0)
 
 auto test_nes_ram_basic() -> bool {
   bool passed = true;
-  CPU_6502 cpu{};
+  MemIO mem{};
+  CPU_6502 cpu{mem.getCPURamIO()};
   cpu.ram_->store(0x0, std::byte{12});
   BYTE_EQ(cpu.ram_->load(0x1000), std::byte{12});
   BYTE_NEQ(cpu.ram_->load(0x8), std::byte{12});
@@ -65,7 +67,8 @@ auto test_nes_ram_basic() -> bool {
 
 auto test_nes_data_fetch() -> bool {
   bool passed = true;
-  CPU_6502 cpu{};
+  MemIO mem{};
+  CPU_6502 cpu{mem.getCPURamIO()};
   //We have an LDA with #0x33 immediate
   //LDA ZP that fetches from $10 which has 0x99
   //LDA X with base 0x1
@@ -125,7 +128,8 @@ auto test_nes_data_fetch() -> bool {
 
 auto test_nes_basic_asm() -> bool {
   bool passed = true;
-  CPU_6502 cpu{};
+  MemIO mem{};
+  CPU_6502 cpu{mem.getCPURamIO()};
   NesAssembler nesAs{};
 
   auto ram_data = nesAs.assemble("ADC #20");
@@ -471,7 +475,8 @@ auto test_nes_basic_asm() -> bool {
 }
 
 auto test_nes_mega() {
-  CPU_6502 cpu{};
+  MemIO memIO{};
+  CPU_6502 cpu{memIO.getCPURamIO()};
   NesAssembler nesAs{};
   NesRom rom{"nestest.nes"};
 
